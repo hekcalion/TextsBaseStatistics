@@ -43,23 +43,7 @@ namespace TextsBase
             {
                 this.Text = CT;
 
-                switch (Form1.LanguageType)
-                {
-                    //Українська
-                    case 0:
-                        pattern = TextAnalizer.patternLettersUA;
-                        break;
-                    //Російська
-                    case 1:
-                        pattern = TextAnalizer.patternLettersRU;
-                        break;
-                    //Англійська
-                    case 2:
-                        pattern = TextAnalizer.patternLettersEN;
-                        break;
-                    default:
-                        break;
-                }
+                pattern = TextAnalyzer.GetLettersOrDigits();
 
                 if (CT == "nGram")
                 {
@@ -348,7 +332,7 @@ namespace TextsBase
                     }
                 }
 
-                int sum = TextAnalizer.CountLettersCount(textProcessor.TextInfo.CharsStat, pattern);
+                int sum = TextAnalyzer.CountLettersCount(textProcessor.TextInfo.CharsStat, pattern);
                 dr["Кількість символів"] = sum;
 
                 dt.Rows.Add(dr);
@@ -373,7 +357,7 @@ namespace TextsBase
                 dgvLettersAnalysis.Columns.Add("cFileName", "Назва файлу");
 
                 //Створюємо колонки літер, та заповнюємо їх назви
-                foreach (char ColumnName in TextAnalizer.patternSymbols)
+                foreach (char ColumnName in TextAnalyzer.textSpecialSymbols.OrderBy(x => x))
                 {
                     dgvLettersAnalysis.Columns.Add(String.Format("c{0}", ColumnName), ColumnName.ToString());
                 }
@@ -389,11 +373,11 @@ namespace TextsBase
                 for (var i = 0; i < TI.Count; i++)
                 {
                     dgvLettersAnalysis.Rows[i].Cells["cFileName"].Value = TI[i].TextFileName;
-                    var sum = TextAnalizer.CountLettersCount(TI[i].CharsStat, TextAnalizer.patternSymbols);
+                    var sum = TextAnalyzer.CountLettersCount(TI[i].CharsStat, TextAnalyzer.GetSpecialSymbols());
                     totalSum += sum;
                     dgvLettersAnalysis.Rows[i].Cells["cCountLetter"].Value = sum;
 
-                    foreach (char ch in TextAnalizer.patternSymbols)
+                    foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                     {
                         if (TI[i].CharsStat.ContainsKey(ch))
                         {
@@ -410,14 +394,14 @@ namespace TextsBase
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Style.BackColor = Color.LightCoral;
 
 
-                Dictionary<char, StatsInfo> stats = TextAnalizer.CalculateStatistics(TI, pattern);
+                Dictionary<char, StatsInfo> stats = TextAnalyzer.CalculateStatistics(TI, pattern);
 
                 //MX (середнє значення) появи в текстах
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Value = "MX";
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Style.BackColor = Color.LightBlue;
 
 
-                foreach (char ch in TextAnalizer.patternSymbols)
+                foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                 {
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].MX);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
@@ -429,7 +413,7 @@ namespace TextsBase
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Style.BackColor = Color.LightGreen;
 
 
-                foreach (char ch in TextAnalizer.patternSymbols)
+                foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                 {
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].Sigma);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
@@ -468,7 +452,7 @@ namespace TextsBase
                 for (var i = 0; i < TI.Count; i++)
                 {
                     dgvLettersAnalysis.Rows[i].Cells[0].Value = TI[i].TextFileName;
-                    var sum = TextAnalizer.CountLettersCount(TI[i].CharsStat, pattern);
+                    var sum = TextAnalyzer.CountLettersCount(TI[i].CharsStat, pattern);
                     totalSum += sum;
                     dgvLettersAnalysis.Rows[i].Cells["cCountLetter"].Value = sum;
 
@@ -489,7 +473,7 @@ namespace TextsBase
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Style.BackColor = Color.LightCoral;
 
 
-                Dictionary<char, StatsInfo> stats = TextAnalizer.CalculateStatistics(TI, pattern);
+                Dictionary<char, StatsInfo> stats = TextAnalyzer.CalculateStatistics(TI, pattern);
 
                 //MX (середнє значення) появи в текстах
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Value = "MX";
@@ -533,7 +517,7 @@ namespace TextsBase
                 dgvLettersAnalysis.Columns.Add("cFileName", "Назва файлу");
 
                 //Створюємо колонки літер, та заповнюємо їх назви
-                foreach (char ColumnName in TextAnalizer.patternSymbols)
+                foreach (char ColumnName in TextAnalyzer.GetSpecialSymbols())
                 {
                     dgvLettersAnalysis.Columns.Add(String.Format("c{0}", ColumnName), ColumnName.ToString());
                 }
@@ -553,12 +537,12 @@ namespace TextsBase
                     dgvLettersAnalysis.Rows[i].Cells["cFileName"].Value = TI[i].TextFileName;
 
                     //Рахуемо кількісь символів
-                    int sum = TextAnalizer.CountLettersCount(TI[i].CharsStat, TextAnalizer.patternSymbols);
+                    int sum = TextAnalyzer.CountLettersCount(TI[i].CharsStat, TextAnalyzer.GetSpecialSymbols());
                     totalSum += sum;
 
                     dgvLettersAnalysis.Rows[i].Cells["cCountLetter"].Value = sum;
 
-                    foreach (char ch in TextAnalizer.patternSymbols)
+                    foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                     {
                         if (TI[i].CharsStat.ContainsKey(ch))
                         {
@@ -575,14 +559,14 @@ namespace TextsBase
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Style.BackColor = Color.LightCoral;
 
                 //Рахуємо статистику по символам
-                Dictionary<char, StatsInfo> stats = TextAnalizer.CalculateStatistics(TI, pattern);
+                Dictionary<char, StatsInfo> stats = TextAnalyzer.CalculateStatistics(TI, pattern);
 
                 //MX (середнє значення) появи в текстах
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Value = "MX";
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Style.BackColor = Color.LightBlue;
 
 
-                foreach (char ch in TextAnalizer.patternSymbols)
+                foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                 {
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].MX);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
@@ -593,7 +577,7 @@ namespace TextsBase
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Style.BackColor = Color.LightGreen;
 
 
-                foreach (char ch in TextAnalizer.patternSymbols)
+                foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                 {
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].Sigma);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
@@ -643,7 +627,7 @@ namespace TextsBase
                     dgvLettersAnalysis.Rows[i].Cells["cFileName"].Value = TI[i].TextFileName;
 
                     //Рахуемо суму всих літер в файлі
-                    int sum = TextAnalizer.CountLettersCount(TI[i].CharsStat, pattern);
+                    int sum = TextAnalyzer.CountLettersCount(TI[i].CharsStat, pattern);
 
                     //Додаємо до загальної суми
                     totalSum += sum;
@@ -670,7 +654,7 @@ namespace TextsBase
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Style.BackColor = Color.LightCoral;
 
                 //Рахуємо статистику
-                Dictionary<char, StatsInfo> stats = TextAnalizer.CalculateStatistics(TI, pattern);
+                Dictionary<char, StatsInfo> stats = TextAnalyzer.CalculateStatistics(TI, pattern);
 
                 //MX (середнє значення) появи в текстах
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Value = "MX";

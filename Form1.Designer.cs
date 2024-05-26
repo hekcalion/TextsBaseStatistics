@@ -48,8 +48,6 @@
             this.dgv_CharStat = new System.Windows.Forms.DataGridView();
             this.cLetter = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.cFreq = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.label1 = new System.Windows.Forms.Label();
-            this.cbSelectLanguage = new System.Windows.Forms.ComboBox();
             this.btnLettersAnalysis = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
             this.btnSymbolAnalysis = new System.Windows.Forms.Button();
@@ -65,6 +63,8 @@
             this.nud_n = new System.Windows.Forms.NumericUpDown();
             this.label4 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.IgnoreCase = new System.Windows.Forms.ComboBox();
             this.ss.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgv_Texts)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -81,7 +81,7 @@
             // 
             // btn_ChoseFolderTexts
             // 
-            this.btn_ChoseFolderTexts.BackColor = System.Drawing.Color.Aquamarine;
+            this.btn_ChoseFolderTexts.BackColor = System.Drawing.Color.Transparent;
             this.btn_ChoseFolderTexts.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btn_ChoseFolderTexts.Location = new System.Drawing.Point(12, 12);
             this.btn_ChoseFolderTexts.Name = "btn_ChoseFolderTexts";
@@ -228,7 +228,7 @@
             // 
             // btn_show_all
             // 
-            this.btn_show_all.BackColor = System.Drawing.Color.Yellow;
+            this.btn_show_all.BackColor = System.Drawing.Color.Transparent;
             this.btn_show_all.Location = new System.Drawing.Point(90, 19);
             this.btn_show_all.Name = "btn_show_all";
             this.btn_show_all.Size = new System.Drawing.Size(135, 41);
@@ -272,34 +272,9 @@
             this.cFreq.ReadOnly = true;
             this.cFreq.Width = 78;
             // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label1.Location = new System.Drawing.Point(144, 15);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(77, 13);
-            this.label1.TabIndex = 4;
-            this.label1.Text = "Мова аналізу:";
-            // 
-            // cbSelectLanguage
-            // 
-            this.cbSelectLanguage.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cbSelectLanguage.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.cbSelectLanguage.FormattingEnabled = true;
-            this.cbSelectLanguage.Items.AddRange(new object[] {
-            "Українська",
-            "Російська",
-            "Англійська"});
-            this.cbSelectLanguage.Location = new System.Drawing.Point(227, 12);
-            this.cbSelectLanguage.Name = "cbSelectLanguage";
-            this.cbSelectLanguage.Size = new System.Drawing.Size(124, 21);
-            this.cbSelectLanguage.TabIndex = 5;
-            this.cbSelectLanguage.SelectedIndexChanged += new System.EventHandler(this.CbSelectLanguage_SelectedIndexChanged);
-            // 
             // btnLettersAnalysis
             // 
-            this.btnLettersAnalysis.BackColor = System.Drawing.Color.Violet;
+            this.btnLettersAnalysis.BackColor = System.Drawing.Color.Transparent;
             this.btnLettersAnalysis.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnLettersAnalysis.Location = new System.Drawing.Point(6, 54);
             this.btnLettersAnalysis.Name = "btnLettersAnalysis";
@@ -312,7 +287,7 @@
             // btnExit
             // 
             this.btnExit.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnExit.BackColor = System.Drawing.Color.Moccasin;
+            this.btnExit.BackColor = System.Drawing.Color.Transparent;
             this.btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExit.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnExit.Image = global::TextsBase.Properties.Resources.logout_32px;
@@ -327,7 +302,7 @@
             // 
             // btnSymbolAnalysis
             // 
-            this.btnSymbolAnalysis.BackColor = System.Drawing.Color.LemonChiffon;
+            this.btnSymbolAnalysis.BackColor = System.Drawing.Color.Transparent;
             this.btnSymbolAnalysis.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnSymbolAnalysis.Location = new System.Drawing.Point(6, 19);
             this.btnSymbolAnalysis.Name = "btnSymbolAnalysis";
@@ -339,7 +314,7 @@
             // 
             // btnLetterAbsolute
             // 
-            this.btnLetterAbsolute.BackColor = System.Drawing.Color.Coral;
+            this.btnLetterAbsolute.BackColor = System.Drawing.Color.Transparent;
             this.btnLetterAbsolute.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnLetterAbsolute.Location = new System.Drawing.Point(118, 54);
             this.btnLetterAbsolute.Name = "btnLetterAbsolute";
@@ -351,7 +326,7 @@
             // 
             // btnSymbolAbsolute
             // 
-            this.btnSymbolAbsolute.BackColor = System.Drawing.Color.PaleGreen;
+            this.btnSymbolAbsolute.BackColor = System.Drawing.Color.Transparent;
             this.btnSymbolAbsolute.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnSymbolAbsolute.Location = new System.Drawing.Point(117, 19);
             this.btnSymbolAbsolute.Name = "btnSymbolAbsolute";
@@ -365,7 +340,7 @@
             // 
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label2.Location = new System.Drawing.Point(144, 69);
+            this.label2.Location = new System.Drawing.Point(145, 39);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(109, 13);
             this.label2.TabIndex = 12;
@@ -377,9 +352,9 @@
             this.cbSpaceDisable.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.cbSpaceDisable.FormattingEnabled = true;
             this.cbSpaceDisable.Items.AddRange(new object[] {
-            "Так",
-            "Ні"});
-            this.cbSpaceDisable.Location = new System.Drawing.Point(259, 66);
+            "Ні",
+            "Так"});
+            this.cbSpaceDisable.Location = new System.Drawing.Point(259, 36);
             this.cbSpaceDisable.Name = "cbSpaceDisable";
             this.cbSpaceDisable.Size = new System.Drawing.Size(92, 21);
             this.cbSpaceDisable.TabIndex = 13;
@@ -391,11 +366,11 @@
             this.cbTextEncoding.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.cbTextEncoding.FormattingEnabled = true;
             this.cbTextEncoding.Items.AddRange(new object[] {
-            "Win-1251",
-            "UTF-8"});
-            this.cbTextEncoding.Location = new System.Drawing.Point(227, 39);
+            "UTF-8",
+            "Win-1251"});
+            this.cbTextEncoding.Location = new System.Drawing.Point(227, 12);
             this.cbTextEncoding.Name = "cbTextEncoding";
-            this.cbTextEncoding.Size = new System.Drawing.Size(95, 21);
+            this.cbTextEncoding.Size = new System.Drawing.Size(124, 21);
             this.cbTextEncoding.TabIndex = 15;
             this.cbTextEncoding.SelectedIndexChanged += new System.EventHandler(this.CbTextEncoding_SelectedIndexChanged);
             // 
@@ -403,7 +378,7 @@
             // 
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label3.Location = new System.Drawing.Point(144, 42);
+            this.label3.Location = new System.Drawing.Point(145, 12);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(64, 13);
             this.label3.TabIndex = 14;
@@ -436,8 +411,8 @@
             // 
             // btnNgramm
             // 
-            this.btnNgramm.BackColor = System.Drawing.Color.Indigo;
-            this.btnNgramm.ForeColor = System.Drawing.Color.White;
+            this.btnNgramm.BackColor = System.Drawing.Color.Transparent;
+            this.btnNgramm.ForeColor = System.Drawing.Color.Black;
             this.btnNgramm.Location = new System.Drawing.Point(126, 12);
             this.btnNgramm.Name = "btnNgramm";
             this.btnNgramm.Size = new System.Drawing.Size(80, 41);
@@ -476,7 +451,7 @@
             this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.label4.Location = new System.Drawing.Point(7, 16);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(67, 16);
+            this.label4.Size = new System.Drawing.Size(66, 16);
             this.label4.TabIndex = 0;
             this.label4.Text = "Порядок:";
             // 
@@ -493,19 +468,42 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Табличні аналізи";
             // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(145, 66);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(103, 13);
+            this.label5.TabIndex = 18;
+            this.label5.Text = "Ігнорувати регістр:";
+            // 
+            // IgnoreCase
+            // 
+            this.IgnoreCase.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.IgnoreCase.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.IgnoreCase.FormattingEnabled = true;
+            this.IgnoreCase.Items.AddRange(new object[] {
+            "Так",
+            "Ні"});
+            this.IgnoreCase.Location = new System.Drawing.Point(259, 63);
+            this.IgnoreCase.Name = "IgnoreCase";
+            this.IgnoreCase.Size = new System.Drawing.Size(92, 21);
+            this.IgnoreCase.TabIndex = 19;
+            this.IgnoreCase.SelectedIndexChanged += new System.EventHandler(this.IgnoreCase_SelectedIndexChanged);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1254, 604);
+            this.Controls.Add(this.IgnoreCase);
+            this.Controls.Add(this.label5);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.groupBoxNGramm);
             this.Controls.Add(this.cbTextEncoding);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.cbSpaceDisable);
             this.Controls.Add(this.label2);
-            this.Controls.Add(this.cbSelectLanguage);
-            this.Controls.Add(this.label1);
             this.Controls.Add(this.btnExit);
             this.Controls.Add(this.dgv_CharStat);
             this.Controls.Add(this.groupBoxAnalyse);
@@ -553,8 +551,6 @@
         private System.Windows.Forms.DataGridView dgv_CharStat;
         private System.Windows.Forms.RadioButton rbShowSymbols;
         private System.Windows.Forms.RadioButton rbShowBukvu;
-        private System.Windows.Forms.ComboBox cbSelectLanguage;
-        private System.Windows.Forms.Label label1;
         private System.Windows.Forms.DataGridViewTextBoxColumn cLetter;
         private System.Windows.Forms.DataGridViewTextBoxColumn cFreq;
         private System.Windows.Forms.Button btnExit;
@@ -572,6 +568,8 @@
         private System.Windows.Forms.Button btnNgramm;
         private System.Windows.Forms.CheckBox relativeValues;
         private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.ComboBox IgnoreCase;
     }
 }
 

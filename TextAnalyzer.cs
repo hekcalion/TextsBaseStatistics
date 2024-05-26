@@ -1,22 +1,38 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TextsBase
 {
-    public static class TextAnalizer
+    public static class TextAnalyzer
     {
-        private static char[] pattern = new char[] { 'а', 'б', 'в', 'г', 'д', 'е', 'ё', 'є', 'ж', 'з', 'и', 'і', 'ї', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я', '.', ',', '!', '?', ':', ';', '-', '—', ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
-        public static char[] patternLettersUA = new char[] { 'а', 'б', 'в', 'г', 'д', 'е', 'є', 'ж', 'з', 'и', 'і', 'ї', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ь', 'ю', 'я' };
-        public static char[] patternLettersRU = new char[] { 'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ы', 'ь', 'э', 'ю', 'я' };
-        public static char[] patternLettersEN = new char[] { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
-        public static char[] patternSymbols = new char[] { ' ', '.', ',', '!', '?', ':', ';', '-', '—' };
+        public static bool ignoreSpaces = true;
+        public static bool ignoreCase = true;
+        public static ConcurrentBag<char> textLettersOrDigits = new ConcurrentBag<char>();
+        public static ConcurrentBag<char> textSpecialSymbols = new ConcurrentBag<char>();
 
-        public static string[] patternNGramUA = new string[] { };
-        public static string[] patternNGramRU = new string[] { };
-        public static string[] patternNGramEN = new string[] { };
+
+        public static char[] GetLettersOrDigits()
+        {
+            if(ignoreCase) return textLettersOrDigits
+                    .Select(x => Char.ToLower(x))
+                    .Distinct()
+                    .OrderBy(x => x).ToArray();
+
+            return textLettersOrDigits.OrderBy(x => x).ToArray();
+        }
+
+        public static char[] GetSpecialSymbols()
+        {
+            if(ignoreSpaces) return textSpecialSymbols.Where(x => !char.IsWhiteSpace(x) && x != '\r' && x != '\n')
+                    .OrderBy(x => x)
+                    .ToArray();
+
+            return textSpecialSymbols.Where(x => x != '\r' && x != '\n')
+                    .OrderBy(x => x)
+                    .ToArray();
+        }
 
         public static Dictionary<char, int> Analize(char[] text)
         {
@@ -24,9 +40,17 @@ namespace TextsBase
 
             for (var i = 0; i < text.Length; i++)
             {
-                var currentChar = char.ToLower(text[i]);
-                if (!pattern.Contains(currentChar)) continue;
+                char currentChar = text[i];
 
+                if (IsSpecialSymbol(currentChar))
+                {
+                    if(!textSpecialSymbols.Contains(currentChar)) textSpecialSymbols.Add(currentChar);
+                }
+                else
+                {
+                    if (!textLettersOrDigits.Contains(currentChar)) textLettersOrDigits.Add(currentChar);
+                }
+                
                 if (result.ContainsKey(currentChar))
                 {
                     result[currentChar]++;
@@ -40,16 +64,9 @@ namespace TextsBase
             return result;
         }
 
-        public static void DisableSpace(bool Disable)
+        public static bool IsSpecialSymbol(char c)
         {
-            if (Disable)
-            {
-                patternSymbols = new char[] { '.', ',', '!', '?', ':', ';', '-', '—' };
-            }
-            else
-            {
-                patternSymbols = new char[] { ' ', '.', ',', '!', '?', ':', ';', '-', '—' };
-            }
+            return !Char.IsLetterOrDigit(c);
         }
 
         public static Dictionary<char, StatsInfo> CalculateStatistics(List<Text> textInfos, char[] patternLet)
@@ -62,12 +79,12 @@ namespace TextsBase
             {
                 var statInfo = new StatsInfo();
                 statInfo.MX = CalculateMX(textInfos, letter);
-                statInfo.DX = CalculateDX(textInfos, letter, statInfo.MX);
                 statInfo.MX = (statInfo.MX / (double)lettersCount);
+                statInfo.DX = CalculateDX(textInfos, letter, statInfo.MX);              
                 statInfo.Sigma = (Math.Sqrt(statInfo.DX) / (double)lettersCount);
                 result.Add(letter, statInfo);
             }
-            foreach (var character in patternSymbols)
+            foreach (var character in TextAnalyzer.GetSpecialSymbols())
             {
                 if (character == ' ') continue;
                 var statInfo = new StatsInfo();
@@ -133,6 +150,30 @@ namespace TextsBase
                 }
             }
             return result;
+        }
+
+        public static Dictionary<char, int> GetFilesFrequency(List<Text> texts)
+        {
+            Dictionary<char, int> frequency = new Dictionary<char, int>();
+
+            foreach (Text text in texts)
+            {
+                foreach (KeyValuePair<char, int> cs in text.CharsStat)
+                {
+                    char key = (ignoreCase) ? char.ToLower(cs.Key) : cs.Key;
+
+                    if (frequency.ContainsKey(key))
+                    {
+                        frequency[key] += cs.Value;
+                    }
+                    else
+                    {
+                        frequency.Add(key, cs.Value);
+                    }
+                }
+            }
+
+            return frequency;
         }
     }
 }

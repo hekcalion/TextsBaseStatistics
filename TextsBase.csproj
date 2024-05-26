@@ -71,7 +71,7 @@
     <Compile Include="StatsInfo.cs" />
     <Compile Include="StatsUtil.cs" />
     <Compile Include="Text.cs" />
-    <Compile Include="TextAnalizer.cs" />
+    <Compile Include="TextAnalyzer.cs" />
     <Compile Include="TextProcessor.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>

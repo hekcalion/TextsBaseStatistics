@@ -16,24 +16,37 @@ namespace TextsBase
         public Form1()
         {
             InitializeComponent();
-            cbSelectLanguage.SelectedIndex = 0;
             cbSpaceDisable.SelectedIndex = 0;
             cbTextEncoding.SelectedIndex = 0;
+            IgnoreCase.SelectedIndex = 0;
         }
 
         private List<Text> Texts;
         public static int LanguageType = 0;
-        private void Btn_ChoseFolderTexts_Click(object sender, EventArgs e)
+        private async void Btn_ChoseFolderTexts_Click(object sender, EventArgs e)
         {
             try
             {
                 Texts = new List<Text>();
                 tssLabelCountFiles.Text = "Загальна кількість файлів: 0";
                 dgv_Texts.Rows.Clear();
-                FolderBrowserDialog fbd = new FolderBrowserDialog();
-                fbd.Description = "Виберіть папку з текстами для дослідження";
+                FolderBrowserDialog fbd = new FolderBrowserDialog
+                {
+                    Description = "Виберіть папку з текстами для дослідження"
+                };
+
+                // Встановлюємо початковий шлях до останньо вибраної папки, якщо такий є
+                if (!string.IsNullOrEmpty(Properties.Settings.Default.LastSelectedFolder) &&
+                    Directory.Exists(Properties.Settings.Default.LastSelectedFolder))
+                {
+                    fbd.SelectedPath = Properties.Settings.Default.LastSelectedFolder;
+                }
+
                 if (fbd.ShowDialog() == DialogResult.OK && !fbd.SelectedPath.Equals(""))
                 {
+                    // Зберігаємо вибраний шлях
+                    Properties.Settings.Default.LastSelectedFolder = fbd.SelectedPath;
+                    Properties.Settings.Default.Save();
                     //Завантажуемо список файлів із вибраної папки
                     List<string> lst_files = Directory.GetFiles(fbd.SelectedPath, "*.txt").ToList();
                     //Додаємо до списку файли які знаходяться в підпапках
@@ -44,43 +57,9 @@ namespace TextsBase
                     tssProgressBar.Value = 0;
                     //Максимум прогресбару
                     tssProgressBar.Maximum = lst_files.Count;
-                    //Почерзі читаємо файли
-                    foreach (string file in lst_files)
-                    {
-                        List<char> chars = new List<char>();
-                        using (StreamReader sr = new StreamReader(file, TextEncoding))
-                        {
-                            int BufferSize = 4096;
-                            char[] CharBuffer = new char[BufferSize];
-                            while (!sr.EndOfStream)
-                            {
-                                int ReadCount = sr.Read(CharBuffer, 0, CharBuffer.Length);
-                                for (int i = 0; i < ReadCount; i++)
-                                {
-                                    chars.Add(CharBuffer[i]);
-                                }
-                            }
-                        }
-                        //Створюємо новий екземпляр класу "Text"
-                        Text t = new Text();
-                        t.TextFull = chars.ToArray();
-                        t.TextFileName = Path.GetFileName(file);
-                        t.Path = file;
-
-                        //Проводимо аналіз тексту
-                        t.CharsStat = TextAnalizer.Analize(t.TextFull);
-
-                        //Виводимо назву текстового файлу користувачеві
-                        dgv_Texts.Rows.Add();
-                        dgv_Texts.Rows[dgv_Texts.Rows.Count - 1].Cells["cPP"].Value = dgv_Texts.Rows.Count;
-                        dgv_Texts.Rows[dgv_Texts.Rows.Count - 1].Cells["cNameText"].Value = t.TextFileName;
-                        dgv_Texts.Rows[dgv_Texts.Rows.Count - 1].Cells["cCharsCount"].Value = t.TextFull.Length;
-
-                        Texts.Add(t);
-                        //Збільшуємо позицію індикатора ProgressBar
-                        tssProgressBar.PerformStep();
-                        
-                    }
+                    //Асинхронно читаємо файли
+                    var fileTask = lst_files.Select(x => ReadFile(x)).ToArray();
+                    await Task.WhenAll(fileTask);
                 }
 
             }
@@ -89,6 +68,43 @@ namespace TextsBase
                 MessageBox.Show(ex.Message);
             }
         }
+
+        private async Task ReadFile(string file)
+        {
+            List<char> chars = new List<char>();
+            using (StreamReader sr = new StreamReader(file, TextEncoding))
+            {
+                int BufferSize = 4096;
+                char[] CharBuffer = new char[BufferSize];
+                while (!sr.EndOfStream)
+                {
+                    int ReadCount = await sr.ReadAsync(CharBuffer, 0, CharBuffer.Length);
+                    for (int i = 0; i < ReadCount; i++)
+                    {
+                        chars.Add(CharBuffer[i]);
+                    }
+                }
+            }
+            //Створюємо новий екземпляр класу "Text"
+            Text t = new Text();
+            t.TextFull = chars.ToArray();
+            t.TextFileName = Path.GetFileName(file);
+            t.Path = file;
+
+            //Проводимо аналіз тексту
+            t.CharsStat = TextAnalyzer.Analize(t.TextFull);
+
+            //Виводимо назву текстового файлу користувачеві
+            dgv_Texts.Rows.Add();
+            dgv_Texts.Rows[dgv_Texts.Rows.Count - 1].Cells["cPP"].Value = dgv_Texts.Rows.Count;
+            dgv_Texts.Rows[dgv_Texts.Rows.Count - 1].Cells["cNameText"].Value = t.TextFileName;
+            dgv_Texts.Rows[dgv_Texts.Rows.Count - 1].Cells["cCharsCount"].Value = t.CharsStat.Values.Sum();
+
+            Texts.Add(t);
+            //Збільшуємо позицію індикатора ProgressBar
+            tssProgressBar.PerformStep();
+        }
+
         /// <summary>
         /// Метод для отримання списку всих файлів у вкладених папках
         /// </summary>
@@ -122,21 +138,9 @@ namespace TextsBase
                 //Створюємо екземпляр класу Text, в якому будемо зберігати результати підрахунку
                 Text t = new Text { CharsStat = new Dictionary<char, int>() };
 
-                //В циклі рахуемо частоту символів та записуємо в еземпляр класу
-                foreach (Text text in Texts)
-                {
-                    foreach (KeyValuePair<char,int> cs in text.CharsStat)
-                    {
-                        if (t.CharsStat.ContainsKey(cs.Key))
-                        {
-                            t.CharsStat[cs.Key] += cs.Value;
-                        }
-                        else
-                        {
-                            t.CharsStat.Add(cs.Key, cs.Value);
-                        }
-                    }
-                }
+                //Рахуємо частоту символів та записуємо в екземпляр класу
+                t.CharsStat = TextAnalyzer.GetFilesFrequency(Texts);
+                
                 //Виводимо результати підрахунку
                 VisualizeStats(t, rbShowSymbols.Checked);
             }
@@ -172,31 +176,13 @@ namespace TextsBase
                 if (visualiseSymbols)
                 {
                     //Шаблон при вибору тільки символів
-                    pattern = TextAnalizer.patternSymbols;
+                    pattern = TextAnalyzer.GetSpecialSymbols();
                 }
                 else
                 {
                     //Вибір мови літер для підрахунку
-                    switch (cbSelectLanguage.SelectedIndex)
-                    {
-                        //Українська
-                        case 0:
-                            pattern = TextAnalizer.patternLettersUA;
-                            break;
-                        //Російська
-                        case 1:
-                            pattern = TextAnalizer.patternLettersRU;
-                            break;
-                        //Англійська
-                        case 2:
-                            pattern = TextAnalizer.patternLettersEN;
-                            break;
-                        default:
-                            break;
-                    }
+                    pattern = TextAnalyzer.GetLettersOrDigits();
                 }
-
-
 
                 if (!pattern.Contains(ch.Key) || !info.CharsStat.ContainsKey(ch.Key)) continue;
 
@@ -209,6 +195,9 @@ namespace TextsBase
                 Chart.Series[0].Points.AddXY(i++, info.CharsStat[ch.Key] / (double)totalCharsCount);
                 Chart.ChartAreas[0].AxisX.CustomLabels.Add((i - 1) - 0.5, i - 0.5, new String(ch.Key, 1));
             }
+
+            //Сортуємо таблицю по алфавіту
+            dgv_CharStat.Sort(dgv_CharStat.Columns["cLetter"], ListSortDirection.Ascending);
         }
 
         private void RbShowSymbols_CheckedChanged(object sender, EventArgs e)
@@ -253,11 +242,6 @@ namespace TextsBase
             new FormAnalysis(Texts, "Аналіз літер").ShowDialog();
         }
 
-        private void CbSelectLanguage_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            LanguageType = cbSelectLanguage.SelectedIndex;
-        }
-
         private void BtnSymbolAnalysis_Click(object sender, EventArgs e)
         {
             new FormAnalysis(Texts, "Аналіз символів").ShowDialog();
@@ -279,11 +263,11 @@ namespace TextsBase
             {
                 if (cbSpaceDisable.SelectedIndex == 1)
                 {
-                    TextAnalizer.DisableSpace(true);
+                    TextAnalyzer.ignoreSpaces = false;
                 }
                 else
                 {
-                    TextAnalizer.DisableSpace(false);
+                    TextAnalyzer.ignoreSpaces = true;
                 }
             }
             catch (Exception ex)
@@ -299,11 +283,11 @@ namespace TextsBase
             {
                 if (cbTextEncoding.SelectedIndex == 1)
                 {
-                    TextEncoding = Encoding.GetEncoding("UTF-8");
+                    TextEncoding = Encoding.GetEncoding("windows-1251");
                 }
                 else
                 {
-                    TextEncoding = Encoding.GetEncoding("windows-1251");
+                    TextEncoding = Encoding.GetEncoding("UTF-8");
                 }
             }
             catch (Exception ex)
@@ -321,6 +305,25 @@ namespace TextsBase
         private void RelativeValues_CheckedChanged(object sender, EventArgs e)
         {
            RelativesValues = relativeValues.Checked;
+        }
+
+        private void IgnoreCase_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (IgnoreCase.SelectedIndex == 0)
+                {
+                    TextAnalyzer.ignoreCase = true;
+                }
+                else
+                {
+                    TextAnalyzer.ignoreCase = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
     }
 }
