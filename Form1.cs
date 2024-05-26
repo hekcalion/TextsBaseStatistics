@@ -35,33 +35,26 @@ namespace TextsBase
                     Description = "Виберіть папку з текстами для дослідження"
                 };
 
-                // Встановлюємо початковий шлях до останньо вибраної папки, якщо такий є
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.LastSelectedFolder) &&
                     Directory.Exists(Properties.Settings.Default.LastSelectedFolder))
                 {
                     fbd.SelectedPath = Properties.Settings.Default.LastSelectedFolder;
                 }
 
-                if (fbd.ShowDialog() == DialogResult.OK && !fbd.SelectedPath.Equals(""))
+                if (fbd.ShowDialog() == DialogResult.OK && !string.IsNullOrEmpty(fbd.SelectedPath))
                 {
-                    // Зберігаємо вибраний шлях
                     Properties.Settings.Default.LastSelectedFolder = fbd.SelectedPath;
                     Properties.Settings.Default.Save();
-                    //Завантажуемо список файлів із вибраної папки
-                    List<string> lst_files = Directory.GetFiles(fbd.SelectedPath, "*.txt").ToList();
-                    //Додаємо до списку файли які знаходяться в підпапках
-                    lst_files.AddRange(GetFilesInSubDirectories(fbd.SelectedPath));
-                    //Виводимо кількість вибраних файлів
-                    tssLabelCountFiles.Text = string.Format("Загальна кількість файлів: {0}", lst_files.Count);
-                    //Прогресбар ставимо в 0
-                    tssProgressBar.Value = 0;
-                    //Максимум прогресбару
-                    tssProgressBar.Maximum = lst_files.Count;
-                    //Асинхронно читаємо файли
-                    var fileTask = lst_files.Select(x => ReadFile(x)).ToArray();
-                    await Task.WhenAll(fileTask);
-                }
 
+                    List<string> lst_files = Directory.GetFiles(fbd.SelectedPath, "*.txt", SearchOption.AllDirectories).ToList();
+
+                    tssLabelCountFiles.Text = $"Загальна кількість файлів: {lst_files.Count}";
+                    tssProgressBar.Value = 0;
+                    tssProgressBar.Maximum = lst_files.Count;
+
+                    var fileTasks = lst_files.Select(file => Task.Run(() => ReadAndProcessFile(file))).ToArray();
+                    await Task.WhenAll(fileTasks);
+                }
             }
             catch (Exception ex)
             {
@@ -69,40 +62,56 @@ namespace TextsBase
             }
         }
 
-        private async Task ReadFile(string file)
+        private async Task ReadAndProcessFile(string file)
         {
-            List<char> chars = new List<char>();
+            Dictionary<char, int> charStats = new Dictionary<char, int>();
+
             using (StreamReader sr = new StreamReader(file, TextEncoding))
             {
-                int BufferSize = 4096;
-                char[] CharBuffer = new char[BufferSize];
-                while (!sr.EndOfStream)
+                char[] buffer = new char[4096];
+                int readCount;
+
+                while ((readCount = await sr.ReadAsync(buffer, 0, buffer.Length)) > 0)
                 {
-                    int ReadCount = await sr.ReadAsync(CharBuffer, 0, CharBuffer.Length);
-                    for (int i = 0; i < ReadCount; i++)
+                    for (int i = 0; i < readCount; i++)
                     {
-                        chars.Add(CharBuffer[i]);
+                        char c = buffer[i];
+
+                        if (charStats.ContainsKey(c))
+                            charStats[c]++;
+                        else
+                            charStats[c] = 1;
+
+                        // Оновлюємо список словник
+                        if (TextAnalyzer.IsSpecialSymbol(c))
+                        {
+                            if (!TextAnalyzer.textSpecialSymbols.Contains(c)) TextAnalyzer.textSpecialSymbols.Add(c);
+                        }
+                        else
+                        {
+                            if (!TextAnalyzer.textLettersOrDigits.Contains(c)) TextAnalyzer.textLettersOrDigits.Add(c);
+                        }
                     }
                 }
             }
-            //Створюємо новий екземпляр класу "Text"
-            Text t = new Text();
-            t.TextFull = chars.ToArray();
-            t.TextFileName = Path.GetFileName(file);
-            t.Path = file;
 
-            //Проводимо аналіз тексту
-            t.CharsStat = TextAnalyzer.Analize(t.TextFull);
+            Text t = new Text
+            {
+                TextFull = charStats.Keys.ToArray(),
+                TextFileName = Path.GetFileName(file),
+                Path = file,
+                CharsStat = charStats,
+            };
 
-            //Виводимо назву текстового файлу користувачеві
-            dgv_Texts.Rows.Add();
-            dgv_Texts.Rows[dgv_Texts.Rows.Count - 1].Cells["cPP"].Value = dgv_Texts.Rows.Count;
-            dgv_Texts.Rows[dgv_Texts.Rows.Count - 1].Cells["cNameText"].Value = t.TextFileName;
-            dgv_Texts.Rows[dgv_Texts.Rows.Count - 1].Cells["cCharsCount"].Value = t.CharsStat.Values.Sum();
-
-            Texts.Add(t);
-            //Збільшуємо позицію індикатора ProgressBar
-            tssProgressBar.PerformStep();
+            lock (Texts)
+            {
+                Texts.Add(t);
+                dgv_Texts.Invoke((Action)(() =>
+                {
+                    dgv_Texts.Rows.Add(dgv_Texts.Rows.Count + 1, t.TextFileName, t.CharsStat.Values.Sum());
+                    tssProgressBar.PerformStep();
+                }));
+            }
         }
 
         /// <summary>
@@ -140,7 +149,7 @@ namespace TextsBase
 
                 //Рахуємо частоту символів та записуємо в екземпляр класу
                 t.CharsStat = TextAnalyzer.GetFilesFrequency(Texts);
-                
+
                 //Виводимо результати підрахунку
                 VisualizeStats(t, rbShowSymbols.Checked);
             }
@@ -172,7 +181,7 @@ namespace TextsBase
             foreach (KeyValuePair<char, int> ch in info.CharsStat.OrderByDescending(v => v.Value))
             {
                 //Створюємо шаблон для підрахунку, на основі вибору користувача на головній формі
-                char[] pattern = null; 
+                char[] pattern = null;
                 if (visualiseSymbols)
                 {
                     //Шаблон при вибору тільки символів
@@ -228,7 +237,6 @@ namespace TextsBase
                 {
 
                     Chart.Series[0].Points.AddXY(i,i);
-                    //Chart.ChartAreas[0].AxisX.CustomLabels.Add((i - 1) - 0.5, i - 0.5, new String(ch.Key, 1)); 
                 }
             }
             catch (Exception ex)
