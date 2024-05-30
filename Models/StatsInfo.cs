@@ -13,5 +13,7 @@ namespace TextsBase
         public double DX { get; set; }
 
         public double Sigma { get; set; }
+
+        public int TotalNGrammsCount { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace TextsBase
@@ -10,7 +11,8 @@ namespace TextsBase
 
         public TextProcessor(NGrammUtil ngrammUtil, string textPath, char[] text)
         {
-            _nGrammUtil = ngrammUtil;
+            _nGrammUtil = ngrammUtil ?? throw new ArgumentNullException(nameof(ngrammUtil));
+
 
             TextInfo = new Text();
             TextInfo.TextFileName = Path.GetFileName(textPath);

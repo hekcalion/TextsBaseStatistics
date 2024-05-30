@@ -48,21 +48,19 @@
             this.dgv_CharStat = new System.Windows.Forms.DataGridView();
             this.cLetter = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.cFreq = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.btnLettersAnalysis = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
-            this.btnSymbolAnalysis = new System.Windows.Forms.Button();
-            this.btnLetterAbsolute = new System.Windows.Forms.Button();
-            this.btnSymbolAbsolute = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.cbSpaceDisable = new System.Windows.Forms.ComboBox();
             this.cbTextEncoding = new System.Windows.Forms.ComboBox();
             this.label3 = new System.Windows.Forms.Label();
             this.groupBoxNGramm = new System.Windows.Forms.GroupBox();
-            this.relativeValues = new System.Windows.Forms.CheckBox();
             this.btnNgramm = new System.Windows.Forms.Button();
             this.nud_n = new System.Windows.Forms.NumericUpDown();
             this.label4 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.cbLanguage = new System.Windows.Forms.ComboBox();
+            this.label1 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.IgnoreCase = new System.Windows.Forms.ComboBox();
             this.ss.SuspendLayout();
@@ -197,10 +195,10 @@
             this.groupBoxAnalyse.Controls.Add(this.btn_show_all);
             this.groupBoxAnalyse.Location = new System.Drawing.Point(357, 12);
             this.groupBoxAnalyse.Name = "groupBoxAnalyse";
-            this.groupBoxAnalyse.Size = new System.Drawing.Size(231, 66);
+            this.groupBoxAnalyse.Size = new System.Drawing.Size(231, 72);
             this.groupBoxAnalyse.TabIndex = 5;
             this.groupBoxAnalyse.TabStop = false;
-            this.groupBoxAnalyse.Text = "Аналіз кількості символів";
+            this.groupBoxAnalyse.Text = "Кількість";
             // 
             // rbShowSymbols
             // 
@@ -249,13 +247,13 @@
             this.dgv_CharStat.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.cLetter,
             this.cFreq});
-            this.dgv_CharStat.Location = new System.Drawing.Point(1069, 84);
+            this.dgv_CharStat.Location = new System.Drawing.Point(1069, 106);
             this.dgv_CharStat.MultiSelect = false;
             this.dgv_CharStat.Name = "dgv_CharStat";
             this.dgv_CharStat.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.dgv_CharStat.RowHeadersVisible = false;
             this.dgv_CharStat.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dgv_CharStat.Size = new System.Drawing.Size(173, 495);
+            this.dgv_CharStat.Size = new System.Drawing.Size(173, 473);
             this.dgv_CharStat.TabIndex = 6;
             // 
             // cLetter
@@ -272,69 +270,20 @@
             this.cFreq.ReadOnly = true;
             this.cFreq.Width = 78;
             // 
-            // btnLettersAnalysis
-            // 
-            this.btnLettersAnalysis.BackColor = System.Drawing.Color.Transparent;
-            this.btnLettersAnalysis.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.btnLettersAnalysis.Location = new System.Drawing.Point(6, 54);
-            this.btnLettersAnalysis.Name = "btnLettersAnalysis";
-            this.btnLettersAnalysis.Size = new System.Drawing.Size(105, 29);
-            this.btnLettersAnalysis.TabIndex = 8;
-            this.btnLettersAnalysis.Text = "Аналіз літер";
-            this.btnLettersAnalysis.UseVisualStyleBackColor = false;
-            this.btnLettersAnalysis.Click += new System.EventHandler(this.BtnLettersAnalysis_Click);
-            // 
             // btnExit
             // 
             this.btnExit.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnExit.BackColor = System.Drawing.Color.Transparent;
             this.btnExit.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExit.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.btnExit.Image = global::TextsBase.Properties.Resources.logout_32px;
             this.btnExit.Location = new System.Drawing.Point(1069, 12);
             this.btnExit.Name = "btnExit";
-            this.btnExit.Size = new System.Drawing.Size(173, 66);
+            this.btnExit.Size = new System.Drawing.Size(173, 88);
             this.btnExit.TabIndex = 7;
             this.btnExit.Text = "Вихід з програми";
             this.btnExit.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btnExit.UseVisualStyleBackColor = false;
             this.btnExit.Click += new System.EventHandler(this.BtnExit_Click);
-            // 
-            // btnSymbolAnalysis
-            // 
-            this.btnSymbolAnalysis.BackColor = System.Drawing.Color.Transparent;
-            this.btnSymbolAnalysis.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.btnSymbolAnalysis.Location = new System.Drawing.Point(6, 19);
-            this.btnSymbolAnalysis.Name = "btnSymbolAnalysis";
-            this.btnSymbolAnalysis.Size = new System.Drawing.Size(105, 29);
-            this.btnSymbolAnalysis.TabIndex = 9;
-            this.btnSymbolAnalysis.Text = "Аналіз символів";
-            this.btnSymbolAnalysis.UseVisualStyleBackColor = false;
-            this.btnSymbolAnalysis.Click += new System.EventHandler(this.BtnSymbolAnalysis_Click);
-            // 
-            // btnLetterAbsolute
-            // 
-            this.btnLetterAbsolute.BackColor = System.Drawing.Color.Transparent;
-            this.btnLetterAbsolute.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.btnLetterAbsolute.Location = new System.Drawing.Point(118, 54);
-            this.btnLetterAbsolute.Name = "btnLetterAbsolute";
-            this.btnLetterAbsolute.Size = new System.Drawing.Size(116, 29);
-            this.btnLetterAbsolute.TabIndex = 10;
-            this.btnLetterAbsolute.Text = "Літери (абсолют.)";
-            this.btnLetterAbsolute.UseVisualStyleBackColor = false;
-            this.btnLetterAbsolute.Click += new System.EventHandler(this.BtnLetterAbsolute_Click);
-            // 
-            // btnSymbolAbsolute
-            // 
-            this.btnSymbolAbsolute.BackColor = System.Drawing.Color.Transparent;
-            this.btnSymbolAbsolute.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.btnSymbolAbsolute.Location = new System.Drawing.Point(117, 19);
-            this.btnSymbolAbsolute.Name = "btnSymbolAbsolute";
-            this.btnSymbolAbsolute.Size = new System.Drawing.Size(116, 29);
-            this.btnSymbolAbsolute.TabIndex = 11;
-            this.btnSymbolAbsolute.Text = "Символи (абсолют.)";
-            this.btnSymbolAbsolute.UseVisualStyleBackColor = false;
-            this.btnSymbolAbsolute.Click += new System.EventHandler(this.BtnSymbolAbsolute_Click);
             // 
             // label2
             // 
@@ -386,34 +335,21 @@
             // 
             // groupBoxNGramm
             // 
-            this.groupBoxNGramm.Controls.Add(this.relativeValues);
             this.groupBoxNGramm.Controls.Add(this.btnNgramm);
             this.groupBoxNGramm.Controls.Add(this.nud_n);
             this.groupBoxNGramm.Controls.Add(this.label4);
             this.groupBoxNGramm.Location = new System.Drawing.Point(840, 12);
             this.groupBoxNGramm.Name = "groupBoxNGramm";
-            this.groupBoxNGramm.Size = new System.Drawing.Size(223, 66);
+            this.groupBoxNGramm.Size = new System.Drawing.Size(223, 72);
             this.groupBoxNGramm.TabIndex = 16;
             this.groupBoxNGramm.TabStop = false;
             this.groupBoxNGramm.Text = "N-Gram";
-            // 
-            // relativeValues
-            // 
-            this.relativeValues.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.relativeValues.AutoSize = true;
-            this.relativeValues.Location = new System.Drawing.Point(10, 39);
-            this.relativeValues.Name = "relativeValues";
-            this.relativeValues.Size = new System.Drawing.Size(117, 17);
-            this.relativeValues.TabIndex = 9;
-            this.relativeValues.Text = "Відносні величини";
-            this.relativeValues.UseVisualStyleBackColor = true;
-            this.relativeValues.CheckedChanged += new System.EventHandler(this.RelativeValues_CheckedChanged);
             // 
             // btnNgramm
             // 
             this.btnNgramm.BackColor = System.Drawing.Color.Transparent;
             this.btnNgramm.ForeColor = System.Drawing.Color.Black;
-            this.btnNgramm.Location = new System.Drawing.Point(126, 12);
+            this.btnNgramm.Location = new System.Drawing.Point(126, 19);
             this.btnNgramm.Name = "btnNgramm";
             this.btnNgramm.Size = new System.Drawing.Size(80, 41);
             this.btnNgramm.TabIndex = 2;
@@ -424,7 +360,7 @@
             // nud_n
             // 
             this.nud_n.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.nud_n.Location = new System.Drawing.Point(80, 14);
+            this.nud_n.Location = new System.Drawing.Point(80, 29);
             this.nud_n.Maximum = new decimal(new int[] {
             10,
             0,
@@ -449,7 +385,7 @@
             // 
             this.label4.AutoSize = true;
             this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label4.Location = new System.Drawing.Point(7, 16);
+            this.label4.Location = new System.Drawing.Point(8, 31);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(66, 16);
             this.label4.TabIndex = 0;
@@ -457,16 +393,46 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.btnSymbolAnalysis);
-            this.groupBox1.Controls.Add(this.btnLettersAnalysis);
-            this.groupBox1.Controls.Add(this.btnSymbolAbsolute);
-            this.groupBox1.Controls.Add(this.btnLetterAbsolute);
+            this.groupBox1.Controls.Add(this.textBox1);
+            this.groupBox1.Controls.Add(this.cbLanguage);
+            this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Location = new System.Drawing.Point(594, 12);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(240, 88);
+            this.groupBox1.Size = new System.Drawing.Size(240, 72);
             this.groupBox1.TabIndex = 17;
             this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Табличні аналізи";
+            this.groupBox1.Text = "Вибір мови";
+            // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(9, 43);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(225, 20);
+            this.textBox1.TabIndex = 2;
+            // 
+            // cbLanguage
+            // 
+            this.cbLanguage.FormattingEnabled = true;
+            this.cbLanguage.Items.AddRange(new object[] {
+            "Українська ",
+            "Англійська ",
+            "Всі, що зустрічаються ",
+            "Символи",
+            "Цифри ",
+            "Додати"});
+            this.cbLanguage.Location = new System.Drawing.Point(74, 16);
+            this.cbLanguage.Name = "cbLanguage";
+            this.cbLanguage.Size = new System.Drawing.Size(117, 21);
+            this.cbLanguage.TabIndex = 1;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(6, 20);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(34, 13);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "Мова";
             // 
             // label5
             // 
@@ -529,6 +495,7 @@
             this.groupBoxNGramm.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nud_n)).EndInit();
             this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -554,10 +521,6 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn cLetter;
         private System.Windows.Forms.DataGridViewTextBoxColumn cFreq;
         private System.Windows.Forms.Button btnExit;
-        private System.Windows.Forms.Button btnLettersAnalysis;
-        private System.Windows.Forms.Button btnSymbolAnalysis;
-        private System.Windows.Forms.Button btnLetterAbsolute;
-        private System.Windows.Forms.Button btnSymbolAbsolute;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.ComboBox cbSpaceDisable;
         private System.Windows.Forms.ComboBox cbTextEncoding;
@@ -566,10 +529,12 @@
         private System.Windows.Forms.NumericUpDown nud_n;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button btnNgramm;
-        private System.Windows.Forms.CheckBox relativeValues;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.ComboBox IgnoreCase;
+        private System.Windows.Forms.ComboBox cbLanguage;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox textBox1;
     }
 }
 

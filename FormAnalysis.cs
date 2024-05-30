@@ -2,18 +2,21 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using static TextsBase.NGrammUtil;
 
 namespace TextsBase
 {
     public partial class FormAnalysis : Form
     {
+        private Dictionary<DataGridViewColumn, DataGridViewColumn> _columnMapping;
         public FormAnalysis(List<Text> textInfos, string CalculateType)
         {
             InitializeComponent();
@@ -26,6 +29,8 @@ namespace TextsBase
             TI = textInfos;
             CT = CalculateType;
             ngramLevel = nGramLevel;
+            _columnMapping = new Dictionary<DataGridViewColumn, DataGridViewColumn>();
+            chkRelativeValues.CheckedChanged += chkRelativeValues_CheckedChanged;
         }
 
         Languages ngramLang;
@@ -42,8 +47,9 @@ namespace TextsBase
             try
             {
                 this.Text = CT;
-
+                
                 pattern = TextAnalyzer.GetLettersOrDigits();
+                UpdateDataGridView();
 
                 if (CT == "nGram")
                 {
@@ -55,7 +61,7 @@ namespace TextsBase
                             break;
                         //Російська
                         case 1:
-                            ngramLang = Languages.RU;
+                            ngramLang = Languages.EN;
                             break;
                         //Англійська
                         case 2:
@@ -97,251 +103,212 @@ namespace TextsBase
         bool saveToFile = false;
         public NGrammUtil NGrammUtil { get; private set; }
         private StatsUtil _statsUtil { get; set; }
-        private void CalculateNGramm(byte nGrammLevel, Languages lang)
+        private async void CalculateNGramm(byte nGrammLevel, Languages lang)
         {
-            try
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            #region Initialization
+
+            _rowIndices = new Dictionary<string, int>();
+
+            NGrammUtil nGrammUtil = new NGrammUtil(nGrammLevel, lang, true, false, false);
+            _statsUtil = new StatsUtil(nGrammUtil);
+
+            #endregion
+
+            #region Phase1 Preprocessing
+
+            Parallel.ForEach(TI, file =>
             {
-                _rowIndices = new Dictionary<string, int>();
-                var fileWriter = new FileWriter();
-                if (saveToFile)
+                var text = new List<char>();
+                using (var sr = new StreamReader(file.Path, Form1.TextEncoding, true))
                 {
-                    fileWriter.AddRow("Header_CustomRow", string.Empty);
-                    fileWriter.AddRow("L_CustomRow", 'L');
-                    fileWriter.AddRow("W_CustomRow", 'W');
+                    var buffer = new char[4096];
+                    int readCount;
+                    while ((readCount = sr.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        text.AddRange(buffer.Take(readCount));
+                    }
                 }
-                NGrammUtil = new NGrammUtil(nGrammLevel, lang, true, false, false);
-                _statsUtil = new StatsUtil(NGrammUtil);
 
-                for (var i = 0; i < TI.Count; i++)
+                var textProcessor = new TextProcessor(nGrammUtil, file.Path, text.Select(c => Char.ToLowerInvariant(c)).ToArray());
+
+                int totalNGrammsCount;
+                var analysisResults = textProcessor.Analyze(out totalNGrammsCount);
+                if (totalNGrammsCount == 0)
                 {
-                    //Начало расчета n-грами
-                    TextProcessor textProcessor = new TextProcessor(NGrammUtil, TI[i].Path, TI[i].TextFull.Select(c => Char.ToLowerInvariant(c)).ToArray());
+                    return;
+                }
 
-                    int totalNGrammsCount;
-
-                    Dictionary<string, int> analysisResults = textProcessor.Analyze(out totalNGrammsCount);
-                    textProcessor.TextInfo.CharsStat = TI[i].CharsStat;
+                lock (_statsUtil)
+                {
                     _statsUtil.AddToResults(textProcessor.TextInfo.TextFull, analysisResults, totalNGrammsCount);
-                    Application.DoEvents();
-                }
-                _statsUtil.CalculateMXs();
-                #region Phase2 Processing
-
-                var textIndex = 0;
-                foreach (var Text in TI)
-                {
-                    var text = new List<char>();
-                    using (var sr = new StreamReader(Text.Path, Form1.TextEncoding, true))
-                    {
-                        var count = 1024;
-                        var characterBuffer = new char[count];
-                        while (!sr.EndOfStream)
-                        {
-                            var readCount = sr.Read(characterBuffer, 0, characterBuffer.Length);
-                            for (var i = 0; i < readCount; i++)
-                            {
-                                text.Add(characterBuffer[i]);
-                            }
-                        }
-                    }
-
-                    var textProcessor = new TextProcessor(NGrammUtil, Text.Path, text.Select(c => Char.ToLowerInvariant(c)).ToArray());
-                    textProcessor.TextInfo.CharsStat = Text.CharsStat;
-                    int totalNGrammsCount;
-                    var analysisResults = textProcessor.Analyze(out totalNGrammsCount);
-                    if (totalNGrammsCount == 0)
-                    {
-                        continue;
-                    }
-
-                    _statsUtil.AddToDx(analysisResults, totalNGrammsCount);
-
-                    if (saveToFile)
-                    {
-                        fileWriter.AddColumn(textProcessor.TextInfo.TextFileName);
-                        fileWriter.SetRowValue("L_CustomRow", _statsUtil.L[textIndex]);
-                        fileWriter.SetRowValue("W_CustomRow", string.Format(doubleFormat, _statsUtil.W[textIndex]));
-
-                        foreach (var kvp in analysisResults)
-                        {
-                            fileWriter.SetRowValue(kvp.Key, GetRelativeValueIfNeeded(kvp.Value, totalNGrammsCount));
-                        }
-                    }
-
-                    if (!saveToFile || NGrammUtil.NGrammLevel == 1)
-                    {
-                        DisplayData(textProcessor, analysisResults, totalNGrammsCount, _statsUtil.L[textIndex], _statsUtil.W[textIndex]);
-                    }
-
-                    textIndex++;
-                    Application.DoEvents();
                 }
 
-                _statsUtil.CalculateSigmas();
+                Application.DoEvents();
+            });
 
-                #endregion
-                #region Writing MX and Sigma
+            _statsUtil.CalculateMXs();
 
-                if (saveToFile)
-                {
-                    fileWriter.AddColumn("MX");
-                    foreach (var kvp in _statsUtil.Statistics)
-                    {
-                        fileWriter.SetRowValue(kvp.Key, string.Format(doubleFormat, kvp.Value.MX));
-                    }
+            #endregion
 
-                    fileWriter.AddColumn("Sigma");
-                    foreach (var kvp in _statsUtil.Statistics)
-                    {
-                        fileWriter.SetRowValue(kvp.Key, string.Format(doubleFormat, kvp.Value.Sigma));
-                    }
+            #region Phase2 Processing
 
-                    fileWriter.AddColumn("Total");
-                    fileWriter.SetRowValue("L_CustomRow", string.Empty);
-                    fileWriter.SetRowValue("L_CustomRow", string.Empty);
-                    fileWriter.SetRowValue("L_CustomRow", _statsUtil.TotalL);
-
-                    fileWriter.SaveData(Application.StartupPath, $"Result-{DateTime.Now.Ticks}.csv");
-                }
-
-                //MX and SIGMA
-                DataRow drMX = dt.NewRow();
-                DataRow drSigma = dt.NewRow();
-
-                drMX["Назва файлу"] = "MX";
-                drSigma["Назва файлу"] = "Sigma";
-
-                foreach (var kvp in _statsUtil.Statistics)
-                {
-                    drMX[kvp.Key] = string.Format(doubleFormat, kvp.Value.MX);
-                    drSigma[kvp.Key] = string.Format(doubleFormat, kvp.Value.Sigma);
-                }
-                dt.Rows.Add(drMX);
-                dt.Rows.Add(drSigma);
-
-                for (int i = 0; i < dgvLettersAnalysis.Columns.Count; i++)
-                {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[i].Style.BackColor = Color.LightBlue;
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[i].Style.BackColor = Color.LightGreen;
-                }
-
-
-                #endregion
-            }
-            catch (Exception ex)
+            var textIndex = 0;
+            Parallel.ForEach(TI, file =>
             {
-                MessageBox.Show(ex.Message);
+                var text = new List<char>();
+                using (var sr = new StreamReader(file.Path, Form1.TextEncoding, true))
+                {
+                    var buffer = new char[4096];
+                    int readCount;
+                    while ((readCount = sr.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        text.AddRange(buffer.Take(readCount));
+                    }
+                }
+
+                var textProcessor = new TextProcessor(nGrammUtil, file.Path, text.Select(c => Char.ToLowerInvariant(c)).ToArray());
+
+                int totalNGrammsCount;
+                var analysisResults = textProcessor.Analyze(out totalNGrammsCount);
+                if (totalNGrammsCount == 0)
+                {
+                    return;
+                }
+
+                lock (_statsUtil)
+                {
+                    _statsUtil.AddToDx(analysisResults, totalNGrammsCount);
+                }
+
+                DisplayData(textProcessor, analysisResults, totalNGrammsCount, _statsUtil.L[textIndex], _statsUtil.W[textIndex]);
+
+                textIndex++;
+                Application.DoEvents();
+            });
+
+            _statsUtil.CalculateSigmas();
+
+            #endregion
+
+            #region Writing MX and Sigma
+
+            // Ensure rows for MX, Sigma, and Total
+            var mxRowIndex = EnsureRowExists("MX");
+            var sigmaRowIndex = EnsureRowExists("Sigma");
+            var totalRowIndex = EnsureRowExists("Total");
+
+            foreach (var kvp in _statsUtil.Statistics)
+            {
+                var colIndexAbsolute = EnsureColumnExists(kvp.Key, out DataGridViewColumn absColumn, isRelative: false);
+                var colIndexRelative = EnsureColumnExists(kvp.Key, out DataGridViewColumn relColumn, isRelative: true);
+
+                // Maintain column mapping
+                _columnMapping[absColumn] = relColumn;
+                _columnMapping[relColumn] = absColumn;
+
+                dgvLettersAnalysis.Rows[mxRowIndex].Cells[colIndexAbsolute].Value = string.Format(doubleFormat, kvp.Value.MX);
+                dgvLettersAnalysis.Rows[mxRowIndex].Cells[colIndexRelative].Value = string.Format(doubleFormat, kvp.Value.MX);
+
+                dgvLettersAnalysis.Rows[sigmaRowIndex].Cells[colIndexAbsolute].Value = string.Format(doubleFormat, kvp.Value.Sigma);
+                dgvLettersAnalysis.Rows[sigmaRowIndex].Cells[colIndexRelative].Value = string.Format(doubleFormat, kvp.Value.Sigma);
             }
+
+            #endregion
+
+            stopwatch.Stop();
+            MessageBox.Show(stopwatch.Elapsed.ToString());
+
+            Enabled = true;
+
         }
-        private string GetRelativeValueIfNeeded(int originalValue, int totalCount)
+        private string GetRelativeValueIfNeeded(double originalValue, int totalCount)
         {
-            return Form1.RelativesValues ? string.Format(doubleFormat, originalValue / (double)totalCount) : originalValue.ToString();
+            return string.Format(doubleFormat, originalValue / (double)totalCount);
         }
+        
         DataTable dt = new DataTable();
         private void DisplayData(TextProcessor textProcessor, Dictionary<string, int> stats, int totalNGrammsCount, int l, double w)
         {
-            try
+            Invoke(new Action(() =>
             {
-                if (dt.Rows.Count == 0)
-                {
-                    dt = new DataTable();
-                    dt.Columns.Add("Назва файлу");
+            // Ensure columns for FileName, L, and W exist
+            var fileNameColIndex = EnsureColumnExists("FileName", out _);
+            var lColIndex = EnsureColumnExists("L", out _);
+            var wColIndex = EnsureColumnExists("W", out _);
+
+            // Add a new row for the file
+            var rowIndex = dgvLettersAnalysis.Rows.Add();
+            var row = dgvLettersAnalysis.Rows[rowIndex];
+
+            // Set the file name in the first column
+            row.Cells[fileNameColIndex].Value = textProcessor.TextInfo.TextFileName;
+
+            // Add L value
+            row.Cells[lColIndex].Value = l;
+
+            // Add W value
+            row.Cells[wColIndex].Value = string.Format(doubleFormat, w);
+
+            // Add stats values
+            foreach (var kvp in stats)
+            {
+                var colIndexAbsolute = EnsureColumnExists(kvp.Key, out DataGridViewColumn absColumn, isRelative: false);
+                    var colIndexRelative = EnsureColumnExists(kvp.Key, out DataGridViewColumn relColumn, isRelative: true);
+
+                    // Maintain column mapping
+                    _columnMapping[absColumn] = relColumn;
+                    _columnMapping[relColumn] = absColumn;
+
+                    row.Cells[colIndexAbsolute].Value = kvp.Value; // Assuming kvp.Value is the absolute value
+                    row.Cells[colIndexRelative].Value = GetRelativeValueIfNeeded(kvp.Value, totalNGrammsCount);
                 }
+            }));
 
-                //Створюємо новий рядок
-                DataRow dr = dt.NewRow();
-
-                //Записуємо назву файла
-                dr["Назва файлу"] = textProcessor.TextInfo.TextFileName;
-
-                //Створюємо колонки назв n-грам, та заповнюємо їх назви
-                foreach (KeyValuePair<string, int> ColumnName in stats)
+        }
+        private int EnsureColumnExists(string colName, out DataGridViewColumn column, bool isRelative = false)
+        {
+            string fullColName = isRelative ? colName + "_Rel" : colName + "_Abs";
+            foreach (DataGridViewColumn col in dgvLettersAnalysis.Columns)
+            {
+                if (col.Name == fullColName)
                 {
-                    if (dt.Rows.Count == 0)
-                    {
-                        dt.Columns.Add(ColumnName.Key);
-                        dr[ColumnName.Key] = ColumnName.Value;
-                    }
-                    else
-                    {
-                        if (dt.Columns.Contains(ColumnName.Key))
-                        {
-                            dr[ColumnName.Key] = ColumnName.Value;
-                        }
-                        else
-                        {
-                            dt.Columns.Add(ColumnName.Key);
-                            dr[ColumnName.Key] = ColumnName.Value;
-                        }
-                    }
+                    column = col;
+                    return col.Index;
                 }
-
-                //Створюємо колонку "Кількість n-грам"
-                if (dt.Rows.Count == 0)
-                {
-                    dt.Columns.Add("Кількість n-грам");
-                }
-                else
-                {
-                    // колонку "Кількість n-грам" в кінець таблиці та копіююємо туди дані
-                    List<string> tmpValueFromDC = new List<string>();
-                    foreach (DataRow tmpDR in dt.Rows)
-                    {
-                        tmpValueFromDC.Add(tmpDR["Кількість n-грам"].ToString());
-                    }
-
-                    DataColumn dc = new DataColumn();
-                    dc = dt.Columns["Кількість n-грам"];
-                    dt.Columns.Remove(dt.Columns["Кількість n-грам"]);
-                    dt.Columns.Add(dc);
-
-                    int i = 0;
-                    foreach (DataRow tmpDR2 in dt.Rows)
-                    {
-                        tmpDR2["Кількість n-грам"] = tmpValueFromDC[i];
-                        i++;
-                    }
-
-                }
-                dr["Кількість n-грам"] = totalNGrammsCount;
-
-
-                //Колонка "Загальна кількість символів
-                if (dt.Rows.Count == 0)
-                {
-                    dt.Columns.Add("Кількість символів");
-                }
-                else
-                {
-                    List<string> tmpValueFromDC = new List<string>();
-                    foreach (DataRow tmpDR in dt.Rows)
-                    {
-                        tmpValueFromDC.Add(tmpDR["Кількість символів"].ToString());
-                    }
-
-                    DataColumn dc = new DataColumn();
-                    dc = dt.Columns["Кількість символів"];
-                    dt.Columns.Remove(dt.Columns["Кількість символів"]);
-                    dt.Columns.Add(dc);
-
-                    int i = 0;
-                    foreach (DataRow tmpDR2 in dt.Rows)
-                    {
-                        tmpDR2["Кількість символів"] = tmpValueFromDC[i];
-                        i++;
-                    }
-                }
-
-                int sum = TextAnalyzer.CountLettersCount(textProcessor.TextInfo.CharsStat, pattern);
-                dr["Кількість символів"] = sum;
-
-                dt.Rows.Add(dr);
-
-                dgvLettersAnalysis.DataSource = dt;
             }
-            catch (Exception ex)
+
+            int colIndex = dgvLettersAnalysis.Columns.Add(fullColName, colName);
+            column = dgvLettersAnalysis.Columns[colIndex];
+            column.Visible = !isRelative; // Initially show absolute columns
+            return colIndex;
+        }
+
+        private int EnsureRowExists(string rowName)
+        {
+            foreach (DataGridViewRow row in dgvLettersAnalysis.Rows)
             {
-                MessageBox.Show(ex.Message);
+                if (row.HeaderCell.Value?.ToString() == rowName)
+                {
+                    return row.Index;
+                }
+            }
+
+            int rowIndex = dgvLettersAnalysis.Rows.Add();
+            dgvLettersAnalysis.Rows[rowIndex].HeaderCell.Value = rowName;
+            return rowIndex;
+        }
+
+        private void UpdateDataGridView()
+        {
+
+            bool showRelative = chkRelativeValues.Checked;
+            foreach (var kvp in _columnMapping)
+            {
+                kvp.Key.Visible = showRelative;
+                kvp.Value.Visible = !showRelative;
             }
         }
         private Dictionary<string, int> _rowIndices { get; set; }
@@ -403,7 +370,7 @@ namespace TextsBase
 
                 foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                 {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].MX);
+                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].MX);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
                 }
 
@@ -415,7 +382,7 @@ namespace TextsBase
 
                 foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                 {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].Sigma);
+                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].Sigma);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
                 }
 
@@ -482,7 +449,7 @@ namespace TextsBase
 
                 foreach (char ch in pattern)
                 {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].MX);
+                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].MX);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
                 }
 
@@ -494,7 +461,7 @@ namespace TextsBase
 
                 foreach (char ch in pattern)
                 {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].Sigma);
+                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].Sigma);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
                 }
 
@@ -546,7 +513,7 @@ namespace TextsBase
                     {
                         if (TI[i].CharsStat.ContainsKey(ch))
                         {
-                            dgvLettersAnalysis.Rows[i].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", TI[i].CharsStat[ch] / (double)sum);
+                            dgvLettersAnalysis.Rows[i].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", TI[i].CharsStat[ch] / (double)sum);
                         }
                     }
                 }
@@ -568,7 +535,7 @@ namespace TextsBase
 
                 foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                 {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].MX);
+                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].MX);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
                 }
 
@@ -579,7 +546,7 @@ namespace TextsBase
 
                 foreach (char ch in TextAnalyzer.GetSpecialSymbols())
                 {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].Sigma);
+                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].Sigma);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
                 }
 
@@ -640,7 +607,7 @@ namespace TextsBase
                     {
                         if (TI[i].CharsStat.ContainsKey(key))
                         {
-                            dgvLettersAnalysis.Rows[i].Cells[string.Format("c{0}", key)].Value = string.Format("{0:0.000}", TI[i].CharsStat[key] / (double)sum);
+                            dgvLettersAnalysis.Rows[i].Cells[string.Format("c{0}", key)].Value = string.Format("{0:0.000000}", TI[i].CharsStat[key] / (double)sum);
                         }
                     }
 
@@ -663,7 +630,7 @@ namespace TextsBase
 
                 foreach (char ch in pattern)
                 {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].MX);
+                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.00000}", stats[ch].MX);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
                 }
 
@@ -672,9 +639,10 @@ namespace TextsBase
                 dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Style.BackColor = Color.LightGreen;
 
 
+
                 foreach (char ch in pattern)
                 {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000}", stats[ch].Sigma);
+                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.00000}", stats[ch].Sigma);
                     dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
                 }
 
@@ -686,5 +654,73 @@ namespace TextsBase
                 MessageBox.Show(ex.Message);
             }
         }
+        
+        private void dgvLettersAnalysis_SortCompare(object sender, DataGridViewSortCompareEventArgs e)
+        {
+            var cv1 = e.CellValue1 == null ? null : e.CellValue1.ToString();
+            if (string.IsNullOrEmpty(cv1))
+            {
+                cv1 = "0";
+            }
+
+            var cv2 = e.CellValue2 == null ? null : e.CellValue2.ToString();
+            if (string.IsNullOrEmpty(cv2))
+            {
+                cv2 = "0";
+            }
+
+            if (double.Parse(cv1) > double.Parse(cv2))
+            {
+                e.SortResult = 1;
+            }
+            else if (double.Parse(cv1) < double.Parse(cv2))
+            {
+                e.SortResult = -1;
+            }
+            else
+            {
+                e.SortResult = 0;
+            }
+
+            e.Handled = true;
+        }
+
+        private void chkRelativeValues_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateDataGridView();
+        }
+
+        private void saveAbsoluteBTN_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
+            
+            saveFileDialog1.RestoreDirectory = true;
+
+            DGV_Export_to_CSV dDV_Export_To_CSV = new DGV_Export_to_CSV();
+
+            if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                string filePath = saveFileDialog1.FileName;
+                dDV_Export_To_CSV.Save(dgvLettersAnalysis, filePath, isRelative: false);
+            }
+        }
+
+        private void saveRelativeBTN_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
+     
+            saveFileDialog1.RestoreDirectory = true;
+
+            DGV_Export_to_CSV dDV_Export_To_CSV = new DGV_Export_to_CSV();
+
+            if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                string filePath = saveFileDialog1.FileName;
+                dDV_Export_To_CSV.Save(dgvLettersAnalysis, filePath, isRelative: true);
+            }
+        }
     }
+    
 }

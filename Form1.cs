@@ -22,7 +22,7 @@ namespace TextsBase
         }
 
         private List<Text> Texts;
-        public static int LanguageType = 0;
+        public static int LanguageType = 2;
         private async void Btn_ChoseFolderTexts_Click(object sender, EventArgs e)
         {
             try
@@ -30,6 +30,7 @@ namespace TextsBase
                 Texts = new List<Text>();
                 tssLabelCountFiles.Text = "Загальна кількість файлів: 0";
                 dgv_Texts.Rows.Clear();
+
                 FolderBrowserDialog fbd = new FolderBrowserDialog
                 {
                     Description = "Виберіть папку з текстами для дослідження"
@@ -52,7 +53,15 @@ namespace TextsBase
                     tssProgressBar.Value = 0;
                     tssProgressBar.Maximum = lst_files.Count;
 
-                    var fileTasks = lst_files.Select(file => Task.Run(() => ReadAndProcessFile(file))).ToArray();
+                    var fileTasks = new List<Task>();
+
+                    // Use a parallel loop to process files
+                    Parallel.ForEach(lst_files, file =>
+                    {
+                        var task = Task.Run(() => ReadAndProcessFile(file));
+                        fileTasks.Add(task);
+                    });
+
                     await Task.WhenAll(fileTasks);
                 }
             }
@@ -73,23 +82,46 @@ namespace TextsBase
 
                 while ((readCount = await sr.ReadAsync(buffer, 0, buffer.Length)) > 0)
                 {
+                    // Use a temporary dictionary to minimize locking
+                    var localCharStats = new Dictionary<char, int>();
+
                     for (int i = 0; i < readCount; i++)
                     {
                         char c = buffer[i];
 
-                        if (charStats.ContainsKey(c))
-                            charStats[c]++;
+                        if (localCharStats.ContainsKey(c))
+                            localCharStats[c]++;
                         else
-                            charStats[c] = 1;
+                            localCharStats[c] = 1;
 
-                        // Оновлюємо список словник
+                        // Update TextAnalyzer outside of lock
                         if (TextAnalyzer.IsSpecialSymbol(c))
                         {
-                            if (!TextAnalyzer.textSpecialSymbols.Contains(c)) TextAnalyzer.textSpecialSymbols.Add(c);
+                            lock (TextAnalyzer.textSpecialSymbols)
+                            {
+                                if (!TextAnalyzer.textSpecialSymbols.Contains(c))
+                                    TextAnalyzer.textSpecialSymbols.Add(c);
+                            }
                         }
                         else
                         {
-                            if (!TextAnalyzer.textLettersOrDigits.Contains(c)) TextAnalyzer.textLettersOrDigits.Add(c);
+                            lock (TextAnalyzer.textLettersOrDigits)
+                            {
+                                if (!TextAnalyzer.textLettersOrDigits.Contains(c))
+                                    TextAnalyzer.textLettersOrDigits.Add(c);
+                            }
+                        }
+                    }
+
+                    // Merge localCharStats into the main charStats
+                    lock (charStats)
+                    {
+                        foreach (var kvp in localCharStats)
+                        {
+                            if (charStats.ContainsKey(kvp.Key))
+                                charStats[kvp.Key] += kvp.Value;
+                            else
+                                charStats[kvp.Key] = kvp.Value;
                         }
                     }
                 }
@@ -106,6 +138,7 @@ namespace TextsBase
             lock (Texts)
             {
                 Texts.Add(t);
+                // Invoke UI updates in bulk to reduce the number of invocations
                 dgv_Texts.Invoke((Action)(() =>
                 {
                     dgv_Texts.Rows.Add(dgv_Texts.Rows.Count + 1, t.TextFileName, t.CharsStat.Values.Sum());
@@ -114,11 +147,6 @@ namespace TextsBase
             }
         }
 
-        /// <summary>
-        /// Метод для отримання списку всих файлів у вкладених папках
-        /// </summary>
-        /// <param name="dir">Папка для перевірки на наявність папок і файлів в них</param>
-        /// <returns></returns>
         private List<string> GetFilesInSubDirectories(string dir)
         {
             List<string> result = new List<string>();
@@ -160,11 +188,6 @@ namespace TextsBase
             }
         }
 
-        /// <summary>
-        /// Метод для візуалізації даних
-        /// </summary>
-        /// <param name="info">Екземпляр класу з даними для візуалізації</param>
-        /// <param name="visualiseSymbols">Показувати символи</param>
         private void VisualizeStats(Text info, bool visualiseSymbols)
         {
             //Очищаємо графік
@@ -209,15 +232,9 @@ namespace TextsBase
             dgv_CharStat.Sort(dgv_CharStat.Columns["cLetter"], ListSortDirection.Ascending);
         }
 
-        private void RbShowSymbols_CheckedChanged(object sender, EventArgs e)
-        {
-           
-        }
+        private void RbShowSymbols_CheckedChanged(object sender, EventArgs e) {}
 
-        private void RbShowBukvu_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
+        private void RbShowBukvu_CheckedChanged(object sender, EventArgs e){}
 
         private void BtnExit_Click(object sender, EventArgs e)
         {
@@ -245,25 +262,6 @@ namespace TextsBase
             }
         }
 
-        private void BtnLettersAnalysis_Click(object sender, EventArgs e)
-        {
-            new FormAnalysis(Texts, "Аналіз літер").ShowDialog();
-        }
-
-        private void BtnSymbolAnalysis_Click(object sender, EventArgs e)
-        {
-            new FormAnalysis(Texts, "Аналіз символів").ShowDialog();
-        }
-
-        private void BtnLetterAbsolute_Click(object sender, EventArgs e)
-        {
-            new FormAnalysis(Texts, "Літери (абсолютні значення)").ShowDialog();
-        }
-
-        private void BtnSymbolAbsolute_Click(object sender, EventArgs e)
-        {
-            new FormAnalysis(Texts, "Символи (абсолютні значення)").ShowDialog();
-        }
 
         private void CbSpaceDisable_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -307,12 +305,6 @@ namespace TextsBase
         private void BtnNgramm_Click(object sender, EventArgs e)
         {
             new FormAnalysis(Texts, "nGram", (byte)nud_n.Value).ShowDialog();
-        }
-
-        public static bool RelativesValues = false;
-        private void RelativeValues_CheckedChanged(object sender, EventArgs e)
-        {
-           RelativesValues = relativeValues.Checked;
         }
 
         private void IgnoreCase_SelectedIndexChanged(object sender, EventArgs e)

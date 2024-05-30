@@ -11,17 +11,17 @@ namespace TextsBase
         public enum Languages
         {
             UA,
-            RU,
             EN,
-            Old
+            All,
+            ADD
         }
 
         public static readonly Dictionary<Languages, List<char>> PatternsLetters = new Dictionary<Languages, List<char>>
         {
             { Languages.UA, new List<char> { 'а', 'б', 'в', 'г', 'д', 'е', 'є', 'ж', 'з', 'и', 'і', 'ї', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ь', 'ю', 'я' } },
-            { Languages.RU, new List<char> { 'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ы', 'ь', 'э', 'ю', 'я' } },
-            { Languages.EN, new List<char> { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'ä', 'ö', 'ß', 'ü', 'ñ' } },
-            { Languages.Old, new List<char> { 'а', 'б', 'в', 'г', 'д', 'е', 'є', 'ж', 'з', 'и', 'ы', 'ъ', 'э', 'ё', 'ђ', 'ѣ', 'і', 'ї', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ь', 'ю', 'я' } },
+            { Languages.EN, new List<char> { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' } },
+            { Languages.All, new List<char> {  } },
+            { Languages.ADD, new List<char> {  } },
         };
 
         public static readonly List<char> PatternSymbols = new List<char> { '.', ',', '!', '?', ':', ';', '-', '—' };
