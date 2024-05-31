@@ -19,10 +19,11 @@ namespace TextsBase
             cbSpaceDisable.SelectedIndex = 0;
             cbTextEncoding.SelectedIndex = 0;
             IgnoreCase.SelectedIndex = 0;
+            cbLanguage.SelectedIndex = 0;
         }
 
         private List<Text> Texts;
-        public static int LanguageType = 2;
+        public static int LanguageType = 0;
         private async void Btn_ChoseFolderTexts_Click(object sender, EventArgs e)
         {
             try
@@ -55,7 +56,7 @@ namespace TextsBase
 
                     var fileTasks = new List<Task>();
 
-                    // Use a parallel loop to process files
+                    
                     Parallel.ForEach(lst_files, file =>
                     {
                         var task = Task.Run(() => ReadAndProcessFile(file));
@@ -82,7 +83,7 @@ namespace TextsBase
 
                 while ((readCount = await sr.ReadAsync(buffer, 0, buffer.Length)) > 0)
                 {
-                    // Use a temporary dictionary to minimize locking
+                    
                     var localCharStats = new Dictionary<char, int>();
 
                     for (int i = 0; i < readCount; i++)
@@ -94,7 +95,7 @@ namespace TextsBase
                         else
                             localCharStats[c] = 1;
 
-                        // Update TextAnalyzer outside of lock
+                        
                         if (TextAnalyzer.IsSpecialSymbol(c))
                         {
                             lock (TextAnalyzer.textSpecialSymbols)
@@ -113,7 +114,7 @@ namespace TextsBase
                         }
                     }
 
-                    // Merge localCharStats into the main charStats
+                    
                     lock (charStats)
                     {
                         foreach (var kvp in localCharStats)
@@ -138,7 +139,7 @@ namespace TextsBase
             lock (Texts)
             {
                 Texts.Add(t);
-                // Invoke UI updates in bulk to reduce the number of invocations
+                
                 dgv_Texts.Invoke((Action)(() =>
                 {
                     dgv_Texts.Rows.Add(dgv_Texts.Rows.Count + 1, t.TextFileName, t.CharsStat.Values.Sum());
@@ -307,7 +308,9 @@ namespace TextsBase
             new FormAnalysis(Texts, "nGram", (byte)nud_n.Value).ShowDialog();
         }
 
-        private void IgnoreCase_SelectedIndexChanged(object sender, EventArgs e)
+        
+
+        public void IgnoreCase_SelectedIndexChanged(object sender, EventArgs e)
         {
             try
             {
@@ -328,7 +331,7 @@ namespace TextsBase
 
         private void cbLanguage_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            //int LanguageType = cbLanguage.SelectedIndex;
         }
     }
 }

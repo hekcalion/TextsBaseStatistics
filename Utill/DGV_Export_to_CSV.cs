@@ -16,7 +16,7 @@ namespace TextsBase
         {
             StringBuilder csvData = new StringBuilder();
 
-            // Write header
+            // напевно тут ше треба підшаманити бо коли зберігаєм відносні файли втікає перша колонка
             foreach (DataGridViewColumn column in dgv.Columns)
             {
                 if ((isRelative && column.Name.EndsWith("_Rel")) || (!isRelative && column.Name.EndsWith("_Abs")) || column.Name == "FileName")
@@ -26,7 +26,7 @@ namespace TextsBase
             }
             csvData.AppendLine();
 
-            // Write rows
+            
             foreach (DataGridViewRow row in dgv.Rows)
             {
                 foreach (DataGridViewColumn column in dgv.Columns)
@@ -36,7 +36,7 @@ namespace TextsBase
                         var value = row.Cells[column.Index].Value;
                         if (value is double doubleValue)
                         {
-                            // Use InvariantCulture to ensure decimal point is used
+                            
                             csvData.Append(doubleValue.ToString("F6", CultureInfo.InvariantCulture) + ",");
                         }
                         else

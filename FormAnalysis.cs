@@ -46,18 +46,18 @@ namespace TextsBase
         {
             try
             {
+                // тут взагалі ше нічого не працює з вибором мови тому всюди англійськи бо розбирав англ тексти
                 this.Text = CT;
                 
                 pattern = TextAnalyzer.GetLettersOrDigits();
                 UpdateDataGridView();
-
                 if (CT == "nGram")
                 {
                     switch (Form1.LanguageType)
                     {
                         //Українська
                         case 0:
-                            ngramLang = Languages.UA;
+                            ngramLang = Languages.EN;
                             break;
                         //Російська
                         case 1:
@@ -119,7 +119,7 @@ namespace TextsBase
                         text.AddRange(buffer.Take(readCount));
                     }
                 }
-
+                // переведення в нижній регістр тут треба ше побавитись бо завжди ігнорує регістри
                 var textProcessor = new TextProcessor(nGrammUtil, file.Path, text.Select(c => Char.ToLowerInvariant(c)).ToArray());
 
                 int totalNGrammsCount;
@@ -143,9 +143,9 @@ namespace TextsBase
 
             #region Phase2 Processing
 
-            var textIndex = 0;
-            Parallel.ForEach(TI, file =>
+            Parallel.ForEach(TI, (file, state, index) =>
             {
+                var textIndex = 0;
                 var text = new List<char>();
                 using (var sr = new StreamReader(file.Path, Form1.TextEncoding, true))
                 {
@@ -156,7 +156,7 @@ namespace TextsBase
                         text.AddRange(buffer.Take(readCount));
                     }
                 }
-
+                // переведення в нижній регістр тут треба ше побавитись бо завжди ігнорує регістри
                 var textProcessor = new TextProcessor(nGrammUtil, file.Path, text.Select(c => Char.ToLowerInvariant(c)).ToArray());
 
                 int totalNGrammsCount;
@@ -169,10 +169,11 @@ namespace TextsBase
                 lock (_statsUtil)
                 {
                     _statsUtil.AddToDx(analysisResults, totalNGrammsCount);
-                    
                 }
 
-                DisplayData(textProcessor, analysisResults, totalNGrammsCount, _statsUtil.L[textIndex], _statsUtil.W[textIndex]);
+                int l = _statsUtil.L[(int)index];
+                double w = _statsUtil.W[(int)index];
+                DisplayData(textProcessor, analysisResults, totalNGrammsCount, l, w);
 
                 textIndex++;
                 Application.DoEvents();
@@ -184,7 +185,7 @@ namespace TextsBase
 
             #region Writing MX and Sigma
 
-            // Ensure rows for MX, Sigma, and Total
+            
             var mxRowIndex = EnsureRowExists("MX");
             var sigmaRowIndex = EnsureRowExists("Sigma");
             var totalRowIndex = EnsureRowExists("Total");
@@ -194,7 +195,7 @@ namespace TextsBase
                 var colIndexAbsolute = EnsureColumnExists(kvp.Key, out DataGridViewColumn absColumn, isRelative: false);
                 var colIndexRelative = EnsureColumnExists(kvp.Key, out DataGridViewColumn relColumn, isRelative: true);
 
-                // Maintain column mapping
+                
                 _columnMapping[absColumn] = relColumn;
                 _columnMapping[relColumn] = absColumn;
 
@@ -203,8 +204,15 @@ namespace TextsBase
 
                 dgvLettersAnalysis.Rows[sigmaRowIndex].Cells[colIndexAbsolute].Value = kvp.Value.Sigma;
                 dgvLettersAnalysis.Rows[sigmaRowIndex].Cells[colIndexRelative].Value = kvp.Value.Sigma;
+               
             }
 
+            var lColIndex = EnsureColumnExists("L", out _);
+            var fileNameColIndex = EnsureColumnExists("FileName", out _);
+            dgvLettersAnalysis.Rows[totalRowIndex].Cells[lColIndex].Value = _statsUtil.TotalL;
+            dgvLettersAnalysis.Rows[mxRowIndex].Cells[fileNameColIndex].Value = "MX";
+            dgvLettersAnalysis.Rows[sigmaRowIndex].Cells[fileNameColIndex].Value = "Sigma";
+            dgvLettersAnalysis.Rows[totalRowIndex].Cells[fileNameColIndex].Value = "Total";
             #endregion
 
             stopwatch.Stop();
@@ -222,42 +230,42 @@ namespace TextsBase
         {
             Invoke(new Action(() =>
             {
-                // Ensure columns for FileName, L, and W exist
+                
                 var fileNameColIndex = EnsureColumnExists("FileName", out _);
                 var lColIndex = EnsureColumnExists("L", out _);
                 var wColIndex = EnsureColumnExists("W", out _);
 
-                // Add a new row for the file
+               
                 var rowIndex = dgvLettersAnalysis.Rows.Add();
                 var row = dgvLettersAnalysis.Rows[rowIndex];
 
-                // Set the file name in the first column
+                
                 row.Cells[fileNameColIndex].Value = textProcessor.TextInfo.TextFileName;
 
-                // Add L value
+                
                 row.Cells[lColIndex].Value = l;
 
-                // Add W value
+               
                 row.Cells[wColIndex].Value = w;
 
-                // Add stats values
+                
                 foreach (var kvp in stats)
                 {
                     var colIndexAbsolute = EnsureColumnExists(kvp.Key, out DataGridViewColumn absColumn, isRelative: false);
                     var colIndexRelative = EnsureColumnExists(kvp.Key, out DataGridViewColumn relColumn, isRelative: true);
 
-                    // Maintain column mapping
+                    // це новий метод відображення стовців замість colName + "_Rel" : colName + "_Abs"
                     _columnMapping[absColumn] = relColumn;
                     _columnMapping[relColumn] = absColumn;
 
-                    row.Cells[colIndexAbsolute].Value = kvp.Value; // Assuming kvp.Value is the absolute value
+                    row.Cells[colIndexAbsolute].Value = kvp.Value; 
                     row.Cells[colIndexRelative].Value = double.Parse(GetRelativeValueIfNeeded(kvp.Value, totalNGrammsCount));
                 }
             }));
         }
         private int EnsureColumnExists(string colName, out DataGridViewColumn column, bool isRelative = false)
         {
-            string fullColName = isRelative ? colName + "_Rel" : colName + "_Abs";
+            string fullColName = isRelative ? colName + "_Rel" : colName + "_Abs"; // посувало б пофіксити але і так працює з початку в мене колонки мали різні імена для відносних і абсолютних
             foreach (DataGridViewColumn col in dgvLettersAnalysis.Columns)
             {
                 if (col.Name == fullColName)
@@ -269,8 +277,8 @@ namespace TextsBase
 
             int colIndex = dgvLettersAnalysis.Columns.Add(fullColName, colName);
             column = dgvLettersAnalysis.Columns[colIndex];
-            column.ValueType = typeof(double); // Ensure column value type is double
-            column.Visible = !isRelative; // Initially show absolute columns
+            column.ValueType = typeof(double); 
+            column.Visible = !isRelative; 
             return colIndex;
         }
 
@@ -301,124 +309,41 @@ namespace TextsBase
         }
         private Dictionary<string, int> _rowIndices { get; set; }
 
-        private void AnalysisLetter()
-        {
-            try
-            {
-
-                //Створюємо першу колонку "Назва тексту"
-                dgvLettersAnalysis.Columns.Add("cFileName", "Назва файлу");
-
-                //Створюємо колонки літер, та заповнюємо їх назви
-                foreach (char ColumnName in pattern)
-                {
-                    dgvLettersAnalysis.Columns.Add(String.Format("c{0}", ColumnName), ColumnName.ToString());
-                }
-
-                //Створюємо останню колонку "Кількість літер"
-                dgvLettersAnalysis.Columns.Add("cCountLetter", "Кількість літер");
-
-
-
-                dgvLettersAnalysis.RowCount = TI.Count + 4;
-                dgvLettersAnalysis.ColumnCount = pattern.Length + 2;
-
-
-                //Кількість всих літер
-                int totalSum = 0;
-
-                for (var i = 0; i < TI.Count; i++)
-                {
-                    //Записуємо в таблицю назву файлу
-                    dgvLettersAnalysis.Rows[i].Cells["cFileName"].Value = TI[i].TextFileName;
-
-                    //Рахуемо суму всих літер в файлі
-                    int sum = TextAnalyzer.CountLettersCount(TI[i].CharsStat, pattern);
-
-                    //Додаємо до загальної суми
-                    totalSum += sum;
-
-                    //Записуємо в таблицю суму по файлу
-                    dgvLettersAnalysis.Rows[i].Cells["cCountLetter"].Value = sum;
-
-                    //Вираховуємо та заносимо в таблицю частоту появи літери в кожному з текстів
-                    foreach (char key in pattern)
-                    {
-                        if (TI[i].CharsStat.ContainsKey(key))
-                        {
-                            dgvLettersAnalysis.Rows[i].Cells[string.Format("c{0}", key)].Value = string.Format("{0:0.000000}", TI[i].CharsStat[key] / (double)sum);
-                        }
-                    }
-
-                }
-
-                //Виводимо в таблицю сумму всих літер
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells["cCountLetter"].Value = totalSum;
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells["cCountLetter"].Style.BackColor = Color.LightCoral;
-
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Value = "Сума:";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Style.BackColor = Color.LightCoral;
-
-                //Рахуємо статистику
-                Dictionary<char, StatsInfo> stats = TextAnalyzer.CalculateStatistics(TI, pattern);
-
-                //MX (середнє значення) появи в текстах
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Value = "MX";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Style.BackColor = Color.LightBlue;
-
-
-                foreach (char ch in pattern)
-                {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.00000}", stats[ch].MX);
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
-                }
-
-                //Sigma - межа верхньої та нижньої похибки
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Value = "Sigma";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Style.BackColor = Color.LightGreen;
-
-
-
-                foreach (char ch in pattern)
-                {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.00000}", stats[ch].Sigma);
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
-                }
-
-
-                //DGV_Export_to_CSV.Export(dgvLettersAnalysis, @"textStatisticLetters.csv");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-        
         private void dgvLettersAnalysis_SortCompare(object sender, DataGridViewSortCompareEventArgs e)
         {
-            var cv1 = e.CellValue1 == null ? null : e.CellValue1.ToString();
-            if (string.IsNullOrEmpty(cv1))
+            if (dgvLettersAnalysis == null || dgvLettersAnalysis.Rows == null)
             {
-                cv1 = "0";
+                e.SortResult = 0;
+                e.Handled = true;
+                return;
             }
 
-            var cv2 = e.CellValue2 == null ? null : e.CellValue2.ToString();
-            if (string.IsNullOrEmpty(cv2))
-            {
-                cv2 = "0";
-            }
+            int rowIndex1 = e.RowIndex1;
+            int rowIndex2 = e.RowIndex2;
 
-            if (double.Parse(cv1) > double.Parse(cv2))
+            
+            int totalRows = dgvLettersAnalysis.Rows.Count;
+
+            
+            if (rowIndex1 >= totalRows - 3 && rowIndex2 >= totalRows - 3)
             {
+                
+                e.SortResult = rowIndex1.CompareTo(rowIndex2);
+            }
+            else if (rowIndex1 >= totalRows - 3)
+            {
+                
                 e.SortResult = 1;
             }
-            else if (double.Parse(cv1) < double.Parse(cv2))
+            else if (rowIndex2 >= totalRows - 3)
             {
+                
                 e.SortResult = -1;
             }
             else
             {
-                e.SortResult = 0;
+                /// вискакує ерорка треба ше посидіти пошаманити
+                e.SortResult = String.Compare(e.CellValue1.ToString(), e.CellValue2.ToString());
             }
 
             e.Handled = true;
@@ -460,6 +385,9 @@ namespace TextsBase
                 dDV_Export_To_CSV.Save(dgvLettersAnalysis, filePath, isRelative: true);
             }
         }
+
+       
     }
+
     
 }
