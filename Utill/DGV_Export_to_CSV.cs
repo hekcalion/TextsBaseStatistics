@@ -11,29 +11,7 @@ namespace TextsBase
 {
     public class DGV_Export_to_CSV
     {
-        private static string[] GetRowValues(DataGridView dgv, int rowId)
-        {
-            var result = new string[dgv.ColumnCount];
-            for (var j = 0; j < dgv.ColumnCount; j++)
-            {
-                result[j] = dgv[j, rowId].Value == null ? "" : dgv[j, rowId].Value.ToString();
-            }
-            return result;
-        }
-
         
-        public static void Export(DataGridView dgv, string fileName)
-        {
-            using (var sw = new StreamWriter(fileName))
-            {
-                for (var i = 0; i < dgv.RowCount; i++)
-                {
-                    sw.WriteLine(string.Join(";", GetRowValues(dgv, i)));
-                }
-            }
-        }
-       
-
         public  void Save (DataGridView dgv, string filePath, bool isRelative)
         {
             StringBuilder csvData = new StringBuilder();
@@ -55,13 +33,22 @@ namespace TextsBase
                 {
                     if ((isRelative && column.Name.EndsWith("_Rel")) || (!isRelative && column.Name.EndsWith("_Abs")) || column.Name == "FileName")
                     {
-                        csvData.Append(row.Cells[column.Index].Value + ",");
+                        var value = row.Cells[column.Index].Value;
+                        if (value is double doubleValue)
+                        {
+                            // Use InvariantCulture to ensure decimal point is used
+                            csvData.Append(doubleValue.ToString("F6", CultureInfo.InvariantCulture) + ",");
+                        }
+                        else
+                        {
+                            csvData.Append(value + ",");
+                        }
                     }
                 }
                 csvData.AppendLine();
             }
 
-            File.WriteAllText(filePath, csvData.ToString());
+            File.WriteAllText(filePath, csvData.ToString(), Encoding.UTF8);
         }
     }
     }

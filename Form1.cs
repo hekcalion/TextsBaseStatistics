@@ -325,5 +325,10 @@ namespace TextsBase
                 MessageBox.Show(ex.Message);
             }
         }
+
+        private void cbLanguage_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

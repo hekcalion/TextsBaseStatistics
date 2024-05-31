@@ -127,18 +127,7 @@ namespace TextsBase
 
         private int CountCharactersCount(char[] text)
         {
-            var result = 0;
-
-            var pattern = _ngramUtil.Pattern;
-            for (var i = 0; i < text.Length; i++)
-            {
-                if (pattern.Contains(text[i]))
-                {
-                    result++;
-                }
-            }
-
-            return result;
+            return text.Length;
         }
     }
 }

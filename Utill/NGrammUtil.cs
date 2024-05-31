@@ -13,7 +13,8 @@ namespace TextsBase
             UA,
             EN,
             All,
-            ADD
+            ADD,
+            NUM
         }
 
         public static readonly Dictionary<Languages, List<char>> PatternsLetters = new Dictionary<Languages, List<char>>
@@ -22,6 +23,7 @@ namespace TextsBase
             { Languages.EN, new List<char> { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' } },
             { Languages.All, new List<char> {  } },
             { Languages.ADD, new List<char> {  } },
+            { Languages.NUM, new List<char> { '1','2','3','4','5', '6', '7', '8','9' } },
         };
 
         public static readonly List<char> PatternSymbols = new List<char> { '.', ',', '!', '?', ':', ';', '-', '—' };

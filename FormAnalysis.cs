@@ -73,18 +73,6 @@ namespace TextsBase
                 }
                 switch (CT)
                 {
-                    case "Аналіз літер":
-                        AnalysisLetter();
-                        break;
-                    case "Аналіз символів":
-                        AnalysisSymbol();
-                        break;
-                    case "Літери (абсолютні значення)":
-                        AbsoluteLetter();
-                        break;
-                    case "Символи (абсолютні значення)":
-                        AbsoluteSymbol();
-                        break;
                     case "nGram":
                         CalculateNGramm(ngramLevel, ngramLang);
                         break;
@@ -181,6 +169,7 @@ namespace TextsBase
                 lock (_statsUtil)
                 {
                     _statsUtil.AddToDx(analysisResults, totalNGrammsCount);
+                    
                 }
 
                 DisplayData(textProcessor, analysisResults, totalNGrammsCount, _statsUtil.L[textIndex], _statsUtil.W[textIndex]);
@@ -209,11 +198,11 @@ namespace TextsBase
                 _columnMapping[absColumn] = relColumn;
                 _columnMapping[relColumn] = absColumn;
 
-                dgvLettersAnalysis.Rows[mxRowIndex].Cells[colIndexAbsolute].Value = string.Format(doubleFormat, kvp.Value.MX);
-                dgvLettersAnalysis.Rows[mxRowIndex].Cells[colIndexRelative].Value = string.Format(doubleFormat, kvp.Value.MX);
+                dgvLettersAnalysis.Rows[mxRowIndex].Cells[colIndexAbsolute].Value = kvp.Value.MX;
+                dgvLettersAnalysis.Rows[mxRowIndex].Cells[colIndexRelative].Value = kvp.Value.MX;
 
-                dgvLettersAnalysis.Rows[sigmaRowIndex].Cells[colIndexAbsolute].Value = string.Format(doubleFormat, kvp.Value.Sigma);
-                dgvLettersAnalysis.Rows[sigmaRowIndex].Cells[colIndexRelative].Value = string.Format(doubleFormat, kvp.Value.Sigma);
+                dgvLettersAnalysis.Rows[sigmaRowIndex].Cells[colIndexAbsolute].Value = kvp.Value.Sigma;
+                dgvLettersAnalysis.Rows[sigmaRowIndex].Cells[colIndexRelative].Value = kvp.Value.Sigma;
             }
 
             #endregion
@@ -222,7 +211,6 @@ namespace TextsBase
             MessageBox.Show(stopwatch.Elapsed.ToString());
 
             Enabled = true;
-
         }
         private string GetRelativeValueIfNeeded(double originalValue, int totalCount)
         {
@@ -234,28 +222,28 @@ namespace TextsBase
         {
             Invoke(new Action(() =>
             {
-            // Ensure columns for FileName, L, and W exist
-            var fileNameColIndex = EnsureColumnExists("FileName", out _);
-            var lColIndex = EnsureColumnExists("L", out _);
-            var wColIndex = EnsureColumnExists("W", out _);
+                // Ensure columns for FileName, L, and W exist
+                var fileNameColIndex = EnsureColumnExists("FileName", out _);
+                var lColIndex = EnsureColumnExists("L", out _);
+                var wColIndex = EnsureColumnExists("W", out _);
 
-            // Add a new row for the file
-            var rowIndex = dgvLettersAnalysis.Rows.Add();
-            var row = dgvLettersAnalysis.Rows[rowIndex];
+                // Add a new row for the file
+                var rowIndex = dgvLettersAnalysis.Rows.Add();
+                var row = dgvLettersAnalysis.Rows[rowIndex];
 
-            // Set the file name in the first column
-            row.Cells[fileNameColIndex].Value = textProcessor.TextInfo.TextFileName;
+                // Set the file name in the first column
+                row.Cells[fileNameColIndex].Value = textProcessor.TextInfo.TextFileName;
 
-            // Add L value
-            row.Cells[lColIndex].Value = l;
+                // Add L value
+                row.Cells[lColIndex].Value = l;
 
-            // Add W value
-            row.Cells[wColIndex].Value = string.Format(doubleFormat, w);
+                // Add W value
+                row.Cells[wColIndex].Value = w;
 
-            // Add stats values
-            foreach (var kvp in stats)
-            {
-                var colIndexAbsolute = EnsureColumnExists(kvp.Key, out DataGridViewColumn absColumn, isRelative: false);
+                // Add stats values
+                foreach (var kvp in stats)
+                {
+                    var colIndexAbsolute = EnsureColumnExists(kvp.Key, out DataGridViewColumn absColumn, isRelative: false);
                     var colIndexRelative = EnsureColumnExists(kvp.Key, out DataGridViewColumn relColumn, isRelative: true);
 
                     // Maintain column mapping
@@ -263,10 +251,9 @@ namespace TextsBase
                     _columnMapping[relColumn] = absColumn;
 
                     row.Cells[colIndexAbsolute].Value = kvp.Value; // Assuming kvp.Value is the absolute value
-                    row.Cells[colIndexRelative].Value = GetRelativeValueIfNeeded(kvp.Value, totalNGrammsCount);
+                    row.Cells[colIndexRelative].Value = double.Parse(GetRelativeValueIfNeeded(kvp.Value, totalNGrammsCount));
                 }
             }));
-
         }
         private int EnsureColumnExists(string colName, out DataGridViewColumn column, bool isRelative = false)
         {
@@ -282,6 +269,7 @@ namespace TextsBase
 
             int colIndex = dgvLettersAnalysis.Columns.Add(fullColName, colName);
             column = dgvLettersAnalysis.Columns[colIndex];
+            column.ValueType = typeof(double); // Ensure column value type is double
             column.Visible = !isRelative; // Initially show absolute columns
             return colIndex;
         }
@@ -313,255 +301,6 @@ namespace TextsBase
         }
         private Dictionary<string, int> _rowIndices { get; set; }
 
-        /// <summary>
-        /// Сиволи абсолютні показники
-        /// </summary>
-        private void AbsoluteSymbol()
-        {
-            try
-            {
-                //Створюємо першу колонку "Назва тексту"
-                dgvLettersAnalysis.Columns.Add("cFileName", "Назва файлу");
-
-                //Створюємо колонки літер, та заповнюємо їх назви
-                foreach (char ColumnName in TextAnalyzer.textSpecialSymbols.OrderBy(x => x))
-                {
-                    dgvLettersAnalysis.Columns.Add(String.Format("c{0}", ColumnName), ColumnName.ToString());
-                }
-
-                //Створюємо останню колонку "Кількість літер"
-                dgvLettersAnalysis.Columns.Add("cCountLetter", "Кількість символів");
-
-                dgvLettersAnalysis.RowCount = TI.Count + 4;
-
-                //Загальна кількість символів
-                int totalSum = 0;
-
-                for (var i = 0; i < TI.Count; i++)
-                {
-                    dgvLettersAnalysis.Rows[i].Cells["cFileName"].Value = TI[i].TextFileName;
-                    var sum = TextAnalyzer.CountLettersCount(TI[i].CharsStat, TextAnalyzer.GetSpecialSymbols());
-                    totalSum += sum;
-                    dgvLettersAnalysis.Rows[i].Cells["cCountLetter"].Value = sum;
-
-                    foreach (char ch in TextAnalyzer.GetSpecialSymbols())
-                    {
-                        if (TI[i].CharsStat.ContainsKey(ch))
-                        {
-                            dgvLettersAnalysis.Rows[i].Cells[string.Format("c{0}", ch)].Value = string.Format("{0}", TI[i].CharsStat[ch]);
-                        }
-                    }
-                }
-
-                //Виводимо в таблицю сумму всих літер
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells["cCountLetter"].Value = totalSum;
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells["cCountLetter"].Style.BackColor = Color.LightCoral;
-
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Value = "Сума:";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Style.BackColor = Color.LightCoral;
-
-
-                Dictionary<char, StatsInfo> stats = TextAnalyzer.CalculateStatistics(TI, pattern);
-
-                //MX (середнє значення) появи в текстах
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Value = "MX";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Style.BackColor = Color.LightBlue;
-
-
-                foreach (char ch in TextAnalyzer.GetSpecialSymbols())
-                {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].MX);
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
-                }
-
-
-                //Sigma - межа верхньої та нижньої похибки
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Value = "Sigma";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Style.BackColor = Color.LightGreen;
-
-
-                foreach (char ch in TextAnalyzer.GetSpecialSymbols())
-                {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].Sigma);
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
-                }
-
-                DGV_Export_to_CSV.Export(dgvLettersAnalysis, @"symbolsStatistics.csv");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Літери абсолютні показники
-        /// </summary>
-        private void AbsoluteLetter()
-        {
-            try
-            {
-                //Створюємо першу колонку "Назва тексту"
-                dgvLettersAnalysis.Columns.Add("cFileName", "Назва файлу");
-
-                //Створюємо колонки літер, та заповнюємо їх назви
-                foreach (char ColumnName in pattern)
-                {
-                    dgvLettersAnalysis.Columns.Add(String.Format("c{0}", ColumnName), ColumnName.ToString());
-                }
-
-                //Створюємо останню колонку "Кількість літер"
-                dgvLettersAnalysis.Columns.Add("cCountLetter", "Кількість літер");
-                dgvLettersAnalysis.RowCount = TI.Count + 4;
-
-
-                int totalSum = 0;
-                for (var i = 0; i < TI.Count; i++)
-                {
-                    dgvLettersAnalysis.Rows[i].Cells[0].Value = TI[i].TextFileName;
-                    var sum = TextAnalyzer.CountLettersCount(TI[i].CharsStat, pattern);
-                    totalSum += sum;
-                    dgvLettersAnalysis.Rows[i].Cells["cCountLetter"].Value = sum;
-
-                    foreach (char ch in pattern)
-                    {
-                        if (TI[i].CharsStat.ContainsKey(ch))
-                        {
-                            dgvLettersAnalysis.Rows[i].Cells[string.Format("c{0}", ch)].Value = string.Format("{0}", TI[i].CharsStat[ch]);
-                        }
-                    }
-                }
-
-                //Виводимо в таблицю сумму всих літер
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells["cCountLetter"].Value = totalSum;
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells["cCountLetter"].Style.BackColor = Color.LightCoral;
-
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Value = "Сума:";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Style.BackColor = Color.LightCoral;
-
-
-                Dictionary<char, StatsInfo> stats = TextAnalyzer.CalculateStatistics(TI, pattern);
-
-                //MX (середнє значення) появи в текстах
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Value = "MX";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Style.BackColor = Color.LightBlue;
-
-
-                foreach (char ch in pattern)
-                {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].MX);
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
-                }
-
-
-                //Sigma - межа верхньої та нижньої похибки
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Value = "Sigma";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Style.BackColor = Color.LightGreen;
-
-
-                foreach (char ch in pattern)
-                {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].Sigma);
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
-                }
-
-                DGV_Export_to_CSV.Export(dgvLettersAnalysis, @"textStatisticsAbsolute.csv");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Аналіз символів
-        /// </summary>
-        private void AnalysisSymbol()
-        {
-            try
-            {
-                //Створюємо першу колонку "Назва тексту"
-                dgvLettersAnalysis.Columns.Add("cFileName", "Назва файлу");
-
-                //Створюємо колонки літер, та заповнюємо їх назви
-                foreach (char ColumnName in TextAnalyzer.GetSpecialSymbols())
-                {
-                    dgvLettersAnalysis.Columns.Add(String.Format("c{0}", ColumnName), ColumnName.ToString());
-                }
-
-                //Створюємо останню колонку "Кількість літер"
-                dgvLettersAnalysis.Columns.Add("cCountLetter", "Кількість символів");
-
-                dgvLettersAnalysis.RowCount = TI.Count + 4;
-
-                //Загальна кількість символів
-                var totalSum = 0;
-
-                //Рахуемо частоту повторення символів, та кількість
-                for (var i = 0; i < TI.Count; i++)
-                {
-                    //Назва файлу
-                    dgvLettersAnalysis.Rows[i].Cells["cFileName"].Value = TI[i].TextFileName;
-
-                    //Рахуемо кількісь символів
-                    int sum = TextAnalyzer.CountLettersCount(TI[i].CharsStat, TextAnalyzer.GetSpecialSymbols());
-                    totalSum += sum;
-
-                    dgvLettersAnalysis.Rows[i].Cells["cCountLetter"].Value = sum;
-
-                    foreach (char ch in TextAnalyzer.GetSpecialSymbols())
-                    {
-                        if (TI[i].CharsStat.ContainsKey(ch))
-                        {
-                            dgvLettersAnalysis.Rows[i].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", TI[i].CharsStat[ch] / (double)sum);
-                        }
-                    }
-                }
-
-                //Виводимо в таблицю сумму всих літер
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells["cCountLetter"].Value = totalSum;
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells["cCountLetter"].Style.BackColor = Color.LightCoral;
-
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Value = "Сума:";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 3].Cells[dgvLettersAnalysis.ColumnCount - 2].Style.BackColor = Color.LightCoral;
-
-                //Рахуємо статистику по символам
-                Dictionary<char, StatsInfo> stats = TextAnalyzer.CalculateStatistics(TI, pattern);
-
-                //MX (середнє значення) появи в текстах
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Value = "MX";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells["cFileName"].Style.BackColor = Color.LightBlue;
-
-
-                foreach (char ch in TextAnalyzer.GetSpecialSymbols())
-                {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].MX);
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 2].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightBlue;
-                }
-
-                //Sigma - межа верхньої та нижньої похибки
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Value = "Sigma";
-                dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells["cFileName"].Style.BackColor = Color.LightGreen;
-
-
-                foreach (char ch in TextAnalyzer.GetSpecialSymbols())
-                {
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Value = string.Format("{0:0.000000}", stats[ch].Sigma);
-                    dgvLettersAnalysis.Rows[dgvLettersAnalysis.RowCount - 1].Cells[string.Format("c{0}", ch)].Style.BackColor = Color.LightGreen;
-                }
-
-                //Експорт в CSV
-                DGV_Export_to_CSV.Export(dgvLettersAnalysis, @"symbolsStatistics.csv");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Аналіз літер
-        /// </summary>
         private void AnalysisLetter()
         {
             try
@@ -647,7 +386,7 @@ namespace TextsBase
                 }
 
 
-                DGV_Export_to_CSV.Export(dgvLettersAnalysis, @"textStatisticLetters.csv");
+                //DGV_Export_to_CSV.Export(dgvLettersAnalysis, @"textStatisticLetters.csv");
             }
             catch (Exception ex)
             {
