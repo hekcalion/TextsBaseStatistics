@@ -113,6 +113,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Models\StatsInfo.cs" />
+    <Compile Include="Utill\NGramStatistic.cs" />
     <Compile Include="Utill\StatsUtil.cs" />
     <Compile Include="Models\Text.cs" />
     <Compile Include="Utill\TextAnalyzer.cs" />

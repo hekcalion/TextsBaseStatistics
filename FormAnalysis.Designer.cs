@@ -41,26 +41,26 @@
             // 
             this.dgvLettersAnalysis.AllowUserToAddRows = false;
             this.dgvLettersAnalysis.AllowUserToDeleteRows = false;
-            this.dgvLettersAnalysis.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.dgvLettersAnalysis.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
-            this.dgvLettersAnalysis.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCells;
-            this.dgvLettersAnalysis.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvLettersAnalysis.Location = new System.Drawing.Point(12, 12);
+            this.dgvLettersAnalysis.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.dgvLettersAnalysis.ColumnHeadersHeight = 29;
+            this.dgvLettersAnalysis.Location = new System.Drawing.Point(13, 15);
+            this.dgvLettersAnalysis.Margin = new System.Windows.Forms.Padding(4);
             this.dgvLettersAnalysis.Name = "dgvLettersAnalysis";
             this.dgvLettersAnalysis.RowHeadersVisible = false;
-            this.dgvLettersAnalysis.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dgvLettersAnalysis.Size = new System.Drawing.Size(782, 469);
+            this.dgvLettersAnalysis.RowHeadersWidth = 51;
+            this.dgvLettersAnalysis.RowTemplate.ReadOnly = true;
+            this.dgvLettersAnalysis.RowTemplate.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvLettersAnalysis.Size = new System.Drawing.Size(1282, 577);
             this.dgvLettersAnalysis.TabIndex = 0;
-            this.dgvLettersAnalysis.SortCompare += new System.Windows.Forms.DataGridViewSortCompareEventHandler(this.dgvLettersAnalysis_SortCompare);
+            this.dgvLettersAnalysis.ColumnAdded += new System.Windows.Forms.DataGridViewColumnEventHandler(this.dgvLettersAnalysis_ColumnAdded);
             // 
             // chkRelativeValues
             // 
             this.chkRelativeValues.AutoSize = true;
-            this.chkRelativeValues.Location = new System.Drawing.Point(12, 491);
+            this.chkRelativeValues.Location = new System.Drawing.Point(16, 604);
+            this.chkRelativeValues.Margin = new System.Windows.Forms.Padding(4);
             this.chkRelativeValues.Name = "chkRelativeValues";
-            this.chkRelativeValues.Size = new System.Drawing.Size(117, 17);
+            this.chkRelativeValues.Size = new System.Drawing.Size(150, 20);
             this.chkRelativeValues.TabIndex = 1;
             this.chkRelativeValues.Text = "Відносні величини";
             this.chkRelativeValues.UseVisualStyleBackColor = true;
@@ -68,9 +68,10 @@
             // 
             // saveAbsoluteBTN
             // 
-            this.saveAbsoluteBTN.Location = new System.Drawing.Point(655, 487);
+            this.saveAbsoluteBTN.Location = new System.Drawing.Point(1131, 599);
+            this.saveAbsoluteBTN.Margin = new System.Windows.Forms.Padding(4);
             this.saveAbsoluteBTN.Name = "saveAbsoluteBTN";
-            this.saveAbsoluteBTN.Size = new System.Drawing.Size(123, 45);
+            this.saveAbsoluteBTN.Size = new System.Drawing.Size(164, 55);
             this.saveAbsoluteBTN.TabIndex = 2;
             this.saveAbsoluteBTN.Text = "Зберегти абсолютні величини";
             this.saveAbsoluteBTN.UseVisualStyleBackColor = true;
@@ -78,9 +79,10 @@
             // 
             // saveRelativeBTN
             // 
-            this.saveRelativeBTN.Location = new System.Drawing.Point(526, 487);
+            this.saveRelativeBTN.Location = new System.Drawing.Point(959, 600);
+            this.saveRelativeBTN.Margin = new System.Windows.Forms.Padding(4);
             this.saveRelativeBTN.Name = "saveRelativeBTN";
-            this.saveRelativeBTN.Size = new System.Drawing.Size(123, 45);
+            this.saveRelativeBTN.Size = new System.Drawing.Size(164, 55);
             this.saveRelativeBTN.TabIndex = 3;
             this.saveRelativeBTN.Text = "Зберегти відносні величини";
             this.saveRelativeBTN.UseVisualStyleBackColor = true;
@@ -88,14 +90,15 @@
             // 
             // FormAnalysis
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(806, 544);
+            this.ClientSize = new System.Drawing.Size(1308, 670);
             this.Controls.Add(this.saveRelativeBTN);
             this.Controls.Add(this.saveAbsoluteBTN);
             this.Controls.Add(this.chkRelativeValues);
             this.Controls.Add(this.dgvLettersAnalysis);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "FormAnalysis";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "FormAnalysis";

@@ -2,17 +2,22 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using TextsBase.Utill;
 
 namespace TextsBase
 {
     public partial class Form1 : Form
     {
+        private string[] _files;
+        private bool _ignoreCase;
+        private bool _ignoreSpaces;
+        private string[] _manualInput;
+        NGramStatistic _nGramStatistic;
+
         public Form1()
         {
             InitializeComponent();
@@ -22,13 +27,10 @@ namespace TextsBase
             cbLanguage.SelectedIndex = 0;
         }
 
-        private List<Text> Texts;
-        public static int LanguageType = 0;
         private async void Btn_ChoseFolderTexts_Click(object sender, EventArgs e)
         {
             try
             {
-                Texts = new List<Text>();
                 tssLabelCountFiles.Text = "Загальна кількість файлів: 0";
                 dgv_Texts.Rows.Clear();
 
@@ -48,103 +50,21 @@ namespace TextsBase
                     Properties.Settings.Default.LastSelectedFolder = fbd.SelectedPath;
                     Properties.Settings.Default.Save();
 
-                    List<string> lst_files = Directory.GetFiles(fbd.SelectedPath, "*.txt", SearchOption.AllDirectories).ToList();
+                    _files = Directory.GetFiles(fbd.SelectedPath, "*.txt", SearchOption.AllDirectories);
 
-                    tssLabelCountFiles.Text = $"Загальна кількість файлів: {lst_files.Count}";
-                    tssProgressBar.Value = 0;
-                    tssProgressBar.Maximum = lst_files.Count;
-
-                    var fileTasks = new List<Task>();
-
-                    
-                    Parallel.ForEach(lst_files, file =>
+                    FileInfo fileInfo;
+                    foreach (string file in _files)
                     {
-                        var task = Task.Run(() => ReadAndProcessFile(file));
-                        fileTasks.Add(task);
-                    });
+                        fileInfo = new FileInfo(file);
+                        dgv_Texts.Rows.Add(dgv_Texts.Rows.Count + 1, fileInfo.Name, $"{fileInfo.Length} байт");
+                    }
 
-                    await Task.WhenAll(fileTasks);
+                    tssLabelCountFiles.Text = $"Загальна кількість файлів: {_files.Length}";
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
-            }
-        }
-
-        private async Task ReadAndProcessFile(string file)
-        {
-            Dictionary<char, int> charStats = new Dictionary<char, int>();
-
-            using (StreamReader sr = new StreamReader(file, TextEncoding))
-            {
-                char[] buffer = new char[4096];
-                int readCount;
-
-                while ((readCount = await sr.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                {
-                    
-                    var localCharStats = new Dictionary<char, int>();
-
-                    for (int i = 0; i < readCount; i++)
-                    {
-                        char c = buffer[i];
-
-                        if (localCharStats.ContainsKey(c))
-                            localCharStats[c]++;
-                        else
-                            localCharStats[c] = 1;
-
-                        
-                        if (TextAnalyzer.IsSpecialSymbol(c))
-                        {
-                            lock (TextAnalyzer.textSpecialSymbols)
-                            {
-                                if (!TextAnalyzer.textSpecialSymbols.Contains(c))
-                                    TextAnalyzer.textSpecialSymbols.Add(c);
-                            }
-                        }
-                        else
-                        {
-                            lock (TextAnalyzer.textLettersOrDigits)
-                            {
-                                if (!TextAnalyzer.textLettersOrDigits.Contains(c))
-                                    TextAnalyzer.textLettersOrDigits.Add(c);
-                            }
-                        }
-                    }
-
-                    
-                    lock (charStats)
-                    {
-                        foreach (var kvp in localCharStats)
-                        {
-                            if (charStats.ContainsKey(kvp.Key))
-                                charStats[kvp.Key] += kvp.Value;
-                            else
-                                charStats[kvp.Key] = kvp.Value;
-                        }
-                    }
-                }
-            }
-
-            Text t = new Text
-            {
-                TextFull = charStats.Keys.ToArray(),
-                TextFileName = Path.GetFileName(file),
-                Path = file,
-                CharsStat = charStats,
-            };
-
-            lock (Texts)
-            {
-                Texts.Add(t);
-                
-                dgv_Texts.Invoke((Action)(() =>
-                {
-                    dgv_Texts.Rows.Add(dgv_Texts.Rows.Count + 1, t.TextFileName, t.CharsStat.Values.Sum());
-                    tssProgressBar.PerformStep();
-                }));
             }
         }
 
@@ -172,15 +92,10 @@ namespace TextsBase
             try
             {
                 //Перевіряємо чи є тексти 
-                if (Texts == null) return;
-                //Створюємо екземпляр класу Text, в якому будемо зберігати результати підрахунку
-                Text t = new Text { CharsStat = new Dictionary<char, int>() };
-
-                //Рахуємо частоту символів та записуємо в екземпляр класу
-                t.CharsStat = TextAnalyzer.GetFilesFrequency(Texts);
+                if (_nGramStatistic == null) return;
 
                 //Виводимо результати підрахунку
-                VisualizeStats(t, rbShowSymbols.Checked);
+                VisualizeStats();
             }
             catch (Exception ex)
             {
@@ -189,58 +104,96 @@ namespace TextsBase
             }
         }
 
-        private void VisualizeStats(Text info, bool visualiseSymbols)
+        private void VisualizeStats()
         {
             //Очищаємо графік
             Chart.Series[0].Points.Clear();
             Chart.ChartAreas[0].AxisX.CustomLabels.Clear();
-            //Очищаемо таблицю з статистикою символів
+            //Очищаємо таблицю з статистикою символів
             dgv_CharStat.Rows.Clear();
+
+            // Get the selected value from the ComboBox
+            int selectedValue = cbLanguage.SelectedIndex;
+            Dictionary<string, int> filteredStats = new Dictionary<string, int>();
+
+            // Filter the statistics based on the selected value
+            switch (selectedValue)
+            {
+                case 0:
+                    filteredStats = _nGramStatistic.totalAbsoluteStatistic.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    break;
+                case 1:
+                    filteredStats = _nGramStatistic.totalAbsoluteStatistic
+                        .Where(kvp => IsUkrainianWord(kvp.Key))
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    break;
+                case 2:
+                    filteredStats = _nGramStatistic.totalAbsoluteStatistic
+                        .Where(kvp => IsEnglishWord(kvp.Key))
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    break;
+                case 3:
+                    filteredStats = _nGramStatistic.totalAbsoluteStatistic
+                        .Where(kvp => IsSymbol(kvp.Key))
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    break;
+                case 4:
+                    filteredStats = _nGramStatistic.totalAbsoluteStatistic
+                        .Where(kvp => IsDigit(kvp.Key))
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    break;
+                case 5:
+                    filteredStats = _nGramStatistic.totalAbsoluteStatistic
+                        .Where(kvp => _manualInput.Contains(kvp.Key))
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    break;
+            }
 
             int i = 0;
             //Рахуємо загальну кількість символів
-            int totalCharsCount = info.CharsStat.Sum(k => k.Value);
+            int totalCharsCount = filteredStats.Sum(k => k.Value);
 
             //Рахуємо частоту зустрічі в тексті символів
-            foreach (KeyValuePair<char, int> ch in info.CharsStat.OrderByDescending(v => v.Value))
+            foreach (var ch in filteredStats.OrderByDescending(v => v.Value))
             {
-                //Створюємо шаблон для підрахунку, на основі вибору користувача на головній формі
-                char[] pattern = null;
-                if (visualiseSymbols)
-                {
-                    //Шаблон при вибору тільки символів
-                    pattern = TextAnalyzer.GetSpecialSymbols();
-                }
-                else
-                {
-                    //Вибір мови літер для підрахунку
-                    pattern = TextAnalyzer.GetLettersOrDigits();
-                }
-
-                if (!pattern.Contains(ch.Key) || !info.CharsStat.ContainsKey(ch.Key)) continue;
-
-                //Виводимо дані в таблицю частоти зустрічі в тексті симовлів
                 dgv_CharStat.Rows.Add();
                 dgv_CharStat.Rows[dgv_CharStat.Rows.Count - 1].Cells["cLetter"].Value = ch.Key;
-                dgv_CharStat.Rows[dgv_CharStat.Rows.Count - 1].Cells["cFreq"].Value = info.CharsStat[ch.Key];
+                dgv_CharStat.Rows[dgv_CharStat.Rows.Count - 1].Cells["cFreq"].Value = ch.Value;
 
                 //Виводимо дані на графік
-                Chart.Series[0].Points.AddXY(i++, info.CharsStat[ch.Key] / (double)totalCharsCount);
-                Chart.ChartAreas[0].AxisX.CustomLabels.Add((i - 1) - 0.5, i - 0.5, new String(ch.Key, 1));
+                Chart.Series[0].Points.AddXY(i++, ch.Value / (double)totalCharsCount);
+                Chart.ChartAreas[0].AxisX.CustomLabels.Add((i - 1) - 0.5, i - 0.5, ch.Key);
             }
 
             //Сортуємо таблицю по алфавіту
             dgv_CharStat.Sort(dgv_CharStat.Columns["cLetter"], ListSortDirection.Ascending);
         }
 
+        private bool IsUkrainianWord(string s)
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch(s, @"^[А-Яа-яҐґЄєІіЇїЁё]+$");
+        }
+
+        private bool IsEnglishWord(string s)
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch(s, @"^[A-Za-z]+$");
+        }
+
+        private bool IsSymbol(string s)
+        {
+            return s.Length == 1 && (char.IsSymbol(s[0]) || char.IsPunctuation(s[0]));
+        }
+
+        private bool IsDigit(string s)
+        {
+            return s.Length == 1 && char.IsDigit(s[0]);
+        }
+
+
         private void RbShowSymbols_CheckedChanged(object sender, EventArgs e) {}
 
         private void RbShowBukvu_CheckedChanged(object sender, EventArgs e){}
 
-        private void BtnExit_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -271,10 +224,12 @@ namespace TextsBase
                 if (cbSpaceDisable.SelectedIndex == 1)
                 {
                     TextAnalyzer.ignoreSpaces = false;
+                    _ignoreSpaces = false;
                 }
                 else
                 {
                     TextAnalyzer.ignoreSpaces = true;
+                    _ignoreSpaces = true;
                 }
             }
             catch (Exception ex)
@@ -305,7 +260,7 @@ namespace TextsBase
 
         private void BtnNgramm_Click(object sender, EventArgs e)
         {
-            new FormAnalysis(Texts, "nGram", (byte)nud_n.Value).ShowDialog();
+            new FormAnalysis(_nGramStatistic).ShowDialog();
         }
 
         
@@ -317,10 +272,12 @@ namespace TextsBase
                 if (IgnoreCase.SelectedIndex == 0)
                 {
                     TextAnalyzer.ignoreCase = true;
+                    _ignoreCase = true;
                 }
                 else
                 {
                     TextAnalyzer.ignoreCase = false;
+                    _ignoreCase = false;
                 }
             }
             catch (Exception ex)
@@ -331,7 +288,33 @@ namespace TextsBase
 
         private void cbLanguage_SelectedIndexChanged(object sender, EventArgs e)
         {
-            //int LanguageType = cbLanguage.SelectedIndex;
+            if(cbLanguage.SelectedIndex == 5)
+            {
+                textBox1.Visible = true;
+            }
+            else
+            {
+                textBox1.Visible = false;
+            }
+        }
+
+        private async void calculateButton_Click(object sender, EventArgs e)
+        {
+            calculateButton.Enabled = false;
+            tssProgressBar.Style = ProgressBarStyle.Marquee;
+
+            _nGramStatistic = new NGramStatistic(_files, (int)nud_n.Value, _ignoreCase, _ignoreSpaces);
+
+            _nGramStatistic.ProcessFile();
+            _nGramStatistic.CalculateRelativeStatistic();
+
+            tssProgressBar.Style = ProgressBarStyle.Blocks;
+            calculateButton.Enabled = true;
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            _manualInput = textBox1.Text.Trim().Split(',');
         }
     }
 }
